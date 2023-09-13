@@ -3,6 +3,9 @@ import os
 # "time" library is used for sleep function
 import time
 
+# Importing pytz seperately, since having issues getting it from helpers
+import pytz
+
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
@@ -13,6 +16,9 @@ from helpers import apology, login_required, lookup, usd
 
 # Configure application
 app = Flask(__name__)
+
+# Get the port number from the PORT environment variable (default is 10000)
+port = int(os.environ.get("PORT", 10000))
 
 # Custom filter
 app.jinja_env.filters["usd"] = usd
