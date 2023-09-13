@@ -397,3 +397,7 @@ def sell():
         flash("Share sale processed successfully!")
         time.sleep(3)
         return redirect("/")
+
+
+if __name__ == '__main__': 
+    app.run(host="0.0.0.0", port=port)
