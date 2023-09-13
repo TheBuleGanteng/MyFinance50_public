@@ -14,6 +14,9 @@ from helpers import apology, login_required, lookup, usd
 # Configure application
 app = Flask(__name__)
 
+# Get the port number from the PORT environment variable (default is 10000)
+port = int(os.environ.get("PORT", 10000))
+
 # Custom filter
 app.jinja_env.filters["usd"] = usd
 
@@ -24,10 +27,6 @@ Session(app)
 
 # Configure CS50 Library to use SQLite database
 db = SQL("sqlite:///finance.db")
-
-
-# Get the port number from the PORT environment variable (default is 10000)
-port = int(os.environ.get("PORT", 10000))
 
 @app.after_request
 def after_request(response):
