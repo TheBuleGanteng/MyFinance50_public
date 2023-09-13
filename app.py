@@ -15,7 +15,7 @@ from helpers import apology, login_required, lookup, usd
 app = Flask(__name__)
 
 # Get the port number from the PORT environment variable (default is 10000)
-port = 10000
+port = int(os.environ.get("PORT", 10000))
 
 # Custom filter
 app.jinja_env.filters["usd"] = usd
