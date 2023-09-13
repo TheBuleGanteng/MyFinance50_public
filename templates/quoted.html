@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Stock Information
+{% endblock %}
+
+{% block main %}
+<h2>Stock Information</h2>
+<table>
+    <thead>
+        <tr>
+            <!-- Below are the headers for the table that shows stock info -->
+            <th>Ticker</th>
+            <th>Company Name</th>
+            <th>Stock Price</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <!-- Below are the values that have been passed in from app.py in the /quote function -->
+            <td>{{ symbol }}</td>
+            <td>{{ name }}</td>
+            <td>{{ price | usd }}</td>
+    </tbody>
+</table>
+{% endblock %}
