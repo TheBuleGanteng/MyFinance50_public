@@ -1,0 +1,17 @@
+CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, username TEXT NOT NULL, hash TEXT NOT NULL, cash NUMERIC NOT NULL DEFAULT 10000.00);
+
+CREATE TABLE sqlite_sequence(name,seq);
+
+CREATE UNIQUE INDEX username ON users (username);
+
+CREATE TABLE transactions (
+    txn_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    user_id INTEGER NOT NULL,
+    txn_date DATETIME NOT NULL,
+    txn_type TEXT NOT NULL,
+    txn_symbol TEXT NOT NULL,
+    txn_shrs INTEGER NOT NULL,
+    txn_shr_price FLOAT NOT NULL,
+    txn_value FLOAT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);

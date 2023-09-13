@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Sell Stocks
+{% endblock %}
+
+{% block main %}
+<h2>Sell Stocks</h2>
+<table>
+    <thead>
+    <form action="/sell" method="post">
+        <tr>
+            <th><label for="symbol">Choose a stock to sell</label></th>
+            <th>Slect how many shares to sell</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><select name="symbol">
+                <!-- Below, we have a disabled option called "sport" so that basketball isn't the first option and this, is selected by default. -->
+                <!-- <option disabled selected>Symbol</option> -->
+                <!-- Below, we iterate across the list sports, as defined in app.py and passed into this function-->
+                {% for symbol in symbols %}
+                    <!-- This displays each sport in the sports list one by one, including displaying the same to the user. -->
+                    <option value="{{ symbol }}">{{ symbol }}</option>
+                {% endfor %}
+            </select></td>
+            <td class="start-align">
+                <input autocomplete="off" autofocus class="form-control w-auto" id="shares" name="shares" placeholder="Shares to sell" type="number">
+            </td>
+            <td><button class="btn btn-primary" type="submit">Submit</button></td>
+        </form>
+        </tr>
+    </tbody>
+</table>
+{% endblock %}

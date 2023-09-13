@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Transaction History
+{% endblock %}
+
+{% block main %}
+<h2>Transaction History</h2>
+<table>
+    <thead>
+        <tr>
+            <!-- Below are the headers for the table that shows stock info -->
+            <th>Date / Time</th>
+            <th>Txn ID</th>
+            <th>Symbol</th>
+            <th>Txn Type</th>
+            <th># Shrs</th>
+            <th>Txn Price/Shr</th>
+            <th>Txn Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Below are the values that have been passed in from app.py in the /quote function -->
+        {% for row in history %}
+            <tr>
+                <td>{{ row["txn_date"] }}</td>
+                <td>{{ row["txn_id"] }}</td>
+                <td>{{ row["symbol"] }}</td>
+                <td>{{ row["txn_type"] }}</td>
+                <td>{{ row["txn_shrs"] }}</td>
+                <td>{{ row["txn_shr_price"] | usd }}</td>
+                <td>{{ row["txn_value"] | usd }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
