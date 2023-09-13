@@ -26,6 +26,9 @@ Session(app)
 db = SQL("sqlite:///finance.db")
 
 
+# Get the port number from the PORT environment variable (default is 10000)
+port = int(os.environ.get("PORT", 10000))
+
 @app.after_request
 def after_request(response):
     """Ensure responses aren't cached"""
