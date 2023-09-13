@@ -3,9 +3,6 @@ import os
 # "time" library is used for sleep function
 import time
 
-# Importing pytz seperately, since having issues getting it from helpers
-import pytz
-
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
