@@ -1,14 +1,11 @@
+from datetime import datetime
 import os
-
-# "time" library is used for sleep function
 import time
-
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash, generate_password_hash
-from datetime import datetime
-
 from helpers import apology, login_required, lookup, usd
 
 # Configure application
