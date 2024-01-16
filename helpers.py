@@ -32,7 +32,8 @@ def login_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get("user_id") is None:
+        if session.get('user') is None:
+            print(f'running login_required()... no value for session[user]')
             return redirect("/login")
         return f(*args, **kwargs)
     return decorated_function
@@ -63,6 +64,9 @@ def lookup(symbol):
         quotes = list(csv.DictReader(response.content.decode("utf-8").splitlines()))
         quotes.reverse()
         price = round(float(quotes[0]["Adj Close"]), 2)
+        print(f'running lookup(symbol)... resonse is: { response }')
+        print(f'running lookup(symbol)... price is: { price }')
+        print(f'running lookup(symbol)... quotes is: { quotes }')
         return {
             "name": symbol,
             "price": price,

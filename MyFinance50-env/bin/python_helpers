@@ -1,4 +1,4 @@
-#!/home/thebuleganteng/TheBuleGanteng/71803511/CS50/CS50-env/bin/python3
+#!/home/thebuleganteng/MyFinance50_public/MyFinance50-env/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

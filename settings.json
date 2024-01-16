@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": "../TheBuleGanteng/MyFinance50_public"
+		},
+		{
+			"name": "MyFinance50_public",
+			"path": "../MyFinance50_public"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"stdio.h": "c",
+			"typeinfo": "c",
+			"stdint.h": "c",
+			"cmath": "c",
+			"python.pythonPath": "/home/thebuleganteng/MyFinance50_public/MyFinance50-env/bin/python"
+
+		}
+	}
+}

@@ -18,12 +18,12 @@
     </thead>
     <tbody>
         <!-- Below are the values that have been passed in from app.py in the /quote function -->
-        {% for row in portfolio %}
+        {% for symbol in portfolio %}
             <tr>
-                <td>{{ row["symbol"] }}</td>
-                <td>{{ row["current_price"] | usd }}</td>
-                <td>{{ row["summed_txn_shares"] }}</td>
-                <td>{{ row["summed_txn_value"] | usd }}</td>
+                <td>{{ portfolio[symbol]["symbol"] }}</td>
+                <td>{{ portfolio[symbol]["current_price"] | usd }}</td>
+                <td>{{ portfolio[symbol]["summed_txn_shares"] }}</td>
+                <td>{{ portfolio[symbol]["summed_txn_value"] | usd }}</td>
 
             </tr>
         {% endfor %}

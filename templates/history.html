@@ -21,15 +21,15 @@
     </thead>
     <tbody>
         <!-- Below are the values that have been passed in from app.py in the /quote function -->
-        {% for row in history %}
+        {% for transaction in history %}
             <tr>
-                <td>{{ row["txn_date"] }}</td>
-                <td>{{ row["txn_id"] }}</td>
-                <td>{{ row["symbol"] }}</td>
-                <td>{{ row["txn_type"] }}</td>
-                <td>{{ row["txn_shrs"] }}</td>
-                <td>{{ row["txn_shr_price"] | usd }}</td>
-                <td>{{ row["txn_value"] | usd }}</td>
+                <td>{{ transaction.txn_date }}</td>
+                <td>{{ transaction.txn_id }}</td>
+                <td>{{ transaction.symbol }}</td>
+                <td>{{ transaction.txn_type }}</td>
+                <td>{{ transaction.txn_shrs }}</td>
+                <td>{{ transaction.txn_shr_price | usd }}</td>
+                <td>{{ transaction.txn_value | usd }}</td>
             </tr>
         {% endfor %}
     </tbody>
