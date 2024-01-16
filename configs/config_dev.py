@@ -19,6 +19,9 @@ class DevelopmentConfig:
     # Get the port number from the PORT environment variable (default is 10000)
     PORT = int(os.getenv('PORT', 5000))
 
+    # Pull in secret key from .env
+    SECRET_KEY = os.getenv('FLASK_SECRET_KEY') or 'default-dev-secret-key'
+
 
     """
     # Email server configuration for development
@@ -34,8 +37,7 @@ class DevelopmentConfig:
 
     # Token settings
     MAX_TOKEN_AGE_SECONDS = 900
-    SECRET_KEY = os.getenv('FLASK_SECRET_KEY') or 'default-dev-secret-key'
-
+    
     # Content Security Policy for Talisman
     CONTENT_SECURITY_POLICY = {
         'default-src': [

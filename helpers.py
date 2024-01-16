@@ -1,5 +1,6 @@
 import csv
-import datetime
+from datetime import datetime, timedelta
+import pytz
 import requests
 import subprocess
 import urllib
@@ -44,8 +45,8 @@ def lookup(symbol):
 
     # Prepare API request
     symbol = symbol.upper()
-    end = datetime.datetime.now()
-    start = end - datetime.timedelta(days=7)
+    end = datetime.now()
+    start = end - timedelta(days=7)
 
     # Yahoo Finance API
     url = (
@@ -79,3 +80,12 @@ def lookup(symbol):
 def usd(value):
     """Format value as USD."""
     return f"${value:,.2f}"
+
+
+def timestamp_SG():
+    singapore_tz = pytz.timezone("Asia/Singapore")
+    timestamp_singapore = datetime.now(pytz.utc).astimezone(singapore_tz).replace(microsecond=0)
+
+    print(f"Generated Timestamp (Singapore Time): {timestamp_singapore}")
+    print(f"Timezone Info: {timestamp_singapore.tzinfo}")
+    return timestamp_singapore

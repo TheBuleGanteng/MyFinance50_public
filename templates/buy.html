@@ -6,12 +6,39 @@
 
 {% block main %}
     <form action="/buy" method="post">
+        {{ form.hidden_tag() }}
+
+        <!-- symbol -->
         <div class="mb-3">
-            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="symbol" name="symbol" placeholder="Stock symbol" type="text" required>
+            {{ form.symbol(class='form-control mx-auto w-auto', id='symbol', autocomplete='off', autofocus=True, placeholder='Stock symbol') }}
         </div>
+        <div class='mb-3'>
+            {% if form.symbol.errors %}
+                <div class='text-danger'>
+                    {% for error in form.symbol.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        <!-- /symbol -->
+
+        <!-- shares -->
         <div class="mb-3">
-            <input autocomplete="off" class="form-control mx-auto w-auto" id="shares" name="shares" placeholder="# of shares" type="number" required>
+            {{ form.shares(class='form-control mx-auto w-auto', id='shares', autocomplete='off', autofocus=True, placeholder='Number of shares') }}
         </div>
-        <button class="btn btn-primary" type="submit">Buy</button>
+        <div class='mb-3'>
+            {% if form.shares.errors %}
+                <div class='text-danger'>
+                    {% for error in form.shares.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        <!-- /shares -->
+
+        {{ form.submit_button(class='btn btn-primary', id='submit_button') }}
+    
     </form>
 {% endblock %}

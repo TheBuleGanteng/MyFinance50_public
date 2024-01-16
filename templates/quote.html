@@ -6,9 +6,24 @@
 
 {% block main %}
     <form action="/quote" method="post">
+        {{ form.hidden_tag() }}
+
+        <!-- symbol -->
         <div class="mb-3">
-            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="symbol" name="symbol" placeholder="Stock symbol" type="text" required>
+            {{ form.symbol(class='form-control mx-auto w-auto', id='symbol', autocomplete='off', autofocus=True, placeholder='Stock symbol') }}
         </div>
-        <button class="btn btn-primary" type="submit">Submit</button>
+        <div class='mb-3'>
+            {% if form.symbol.errors %}
+                <div class='text-danger'>
+                    {% for error in form.symbol.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        <!-- /symbol -->
+
+        {{ form.submit_button(class='btn btn-primary', id='submit_button') }}
+    
     </form>
 {% endblock %}

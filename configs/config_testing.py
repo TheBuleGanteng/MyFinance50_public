@@ -9,7 +9,7 @@ class DevelopmentConfig:
     DEBUG = True
 
     # Database configuration
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'finance.sqlite')
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Session configuration
@@ -19,6 +19,8 @@ class DevelopmentConfig:
     # Get the port number from the PORT environment variable (default is 10000)
     PORT = int(os.getenv('PORT', 5000))
 
+    # Pull in secret key from .env
+    SECRET_KEY = os.getenv('FLASK_SECRET_KEY') or 'default-dev-secret-key'
 
     """
     # Email server configuration for development

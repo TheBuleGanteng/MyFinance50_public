@@ -1,12 +1,16 @@
 from datetime import datetime
 import os
 import time
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, flash, make_response, redirect, render_template, request, session, url_for
+from flask_migrate import Migrate
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy 
+from flask_wtf.csrf import CSRFProtect, generate_csrf
+from forms.forms import BuyForm, LoginForm, PasswordChangeForm, QuoteForm, RegisterForm, SellForm
 from sqlalchemy import func
+import sys
 from werkzeug.security import check_password_hash, generate_password_hash
-from helpers import apology, login_required, lookup, usd
+from helpers import apology, login_required, lookup, timestamp_SG, usd
 
 # Must declare this before app initialization to avoid circular import.
 db = SQLAlchemy()
@@ -28,12 +32,16 @@ def create_app(config_name=None):
     # Custom filter
     app.jinja_env.filters['usd'] = usd
 
+    # Enable flask-migrate (allows db changes via models.py)
+    migrate = Migrate(app, db)
+
+    # Allows for use of generalized filters and validators
+    external_folder_path = os.path.abspath('/home/thebuleganteng/Custom_FlaskWtf_Filters_and_Validators')
+    sys.path.append(external_folder_path)
+
     Session(app)
     db.init_app(app)
-
-    # Configure CS50 Library to use SQLite database
-    #CS50_db = SQL("sqlite:///finance.sqlite")
-
+    
     @app.after_request
     def after_request(response):
         """Ensure responses aren't cached"""
@@ -137,93 +145,127 @@ def create_app(config_name=None):
     def buy():
         print(f'running /buy ...  starting /buy ')
         print(f'running /buy... database URL is: { os.path.abspath("finance.sqlite") }')
-        print(f'running /buy ... session.get(user) is: { session.get("user") }')
+        print(f'running /buy ... session.get(user) is: { session.get("user", None) }')
+        print(f'running /buy ... CSRF token is: { session.get("csrf_token", None) }')
 
-        
-        # Step 2: If the user submitted the info via get, then display the buy page:
-        if request.method == "GET":
-            return render_template("buy.html")
+        form = BuyForm()
 
-        # Step 3: If the user submitted the info via post, then run the following code:
-        if request.method == "POST":
+        # Step 1: Handle submission via post
+        if request.method == 'POST':
 
-            # Step 1: Pull in the user inputs from buy.html
-            symbol = request.form.get("symbol")
-            # Since the form receives shares as a string, convert it to an integer.
-            try:
-                shares = int(request.form.get("shares"))
-            except ValueError:
-                return apology("Apology: Please enter integer for number of shares", 400)
-            print(f'running / ...  symbol is: { symbol } ')
-            print(f'running / ...  shares is: { shares } ')
+            # Step 1.1: Handle submission via post + user input clears form validation
+            if form.validate_on_submit():
 
-            # Step 3.1: Check: Has user filled the boxes for symbol and shares?
-            if not symbol or not shares:
-                return apology("Apology: Please complete stock symbol and number of shares.", 403)
+                # Step 1.1.1: Pull in the user inputs from buy.html
+                symbol = form.symbol.data
+                shares = form.shares.data
+                print(f'running /buy ...  symbol is: { symbol } ')
+                print(f'running /buy ...  shares is: { shares } ')
 
-            # Step 3.2: Check: Has user provided a valid symbol?
-            # Use the lookup function to ensure the stock symbol entered by the user is valid.
-            if (lookup(symbol)) == None:
-                return apology("Apology: No such symbol found", 400)
+                # Step 1.1.2: Check if symbol is a valid ticker. If yes, store data in symbol_data.
+                if lookup(symbol):
+                    symbol_data = lookup(symbol)
+                else:
+                    print(f'running /buy ... user-entered symbol is not valid: { symbol }. Flashing message and returning user to /buy.')
+                    flash('Error: Invalid symbol')
+                    return render_template('buy.html', form=form)
 
-            # Step 3.3: Check: Has user entered an integer for number of shares?
-            # If the symbol is found, then check to ensure the user entered an integer for number of shares.
-            elif not isinstance(shares, int):
-                return apology("Apology: Please enter integer for number of shares", 400)
-
-            # Check: Has user entered negative number for shares?
-            # If the symbol is found, and the number is an integer, check that the integer is positive.
-            elif int(shares) < 0:
-                return apology("Apology: Please enter a positive integer for number of shares", 400)
-
-            # Use lookup to get the price of the stock.
-            price_bot = (lookup(symbol))["price"]
-            # Calculate the total transaction value.
-            txn_value = float(shares) * price_bot
-
-            # Query the SQL database to see how much cash the user has on hand.
-            # Here, we query the value for cash from the current user.
-            user = db.session.query(User).filter_by(id = session.get('user')).scalar()
-            if not user:
-                print(f'running /buy... no user found in database')
-                return redirect("/login")
-            print(f'running /buy... user is: { user }')
-
-            if txn_value >= user.cash:
-                print(f'running /buy... txn_value is: { txn_value } and user.cash is only: { user.cash }')
-                return apology("Apology: Insufficient cash to complete transaction", 403)
-            else:
-                # Get current date and time, needed for txn timestamp
-                timestamp = datetime.now().replace(microsecond=0)
-
-                # Capitalize user inputted stock symbol to eliminate any issues re capitalization
-                symbol = symbol.upper()
+                # Step 1.1.3: Store the txn data
+                txn_price_per_share = symbol_data["price"]
+                txn_total_value = shares * txn_price_per_share
                 
-                # Add new entry into the transaction table to represent the share purchase.
+                # Step 1.1.4: Pull the user data (needed for cash balance)
+                try:
+                    user = db.session.query(User).filter_by(id = session.get('user')).scalar()
+                    if txn_total_value > user.cash:
+                        print(f'running /buy... Error 1.1.4 (insufficient cash) txn_total_value is: { txn_total_value } and user.cash is only: { user.cash }')
+                        flash('Error: Insufficient cash to complete transaction')
+                        return render_template('buy.html', form=form) 
+                    print(f'running /buy... txn_total_value is: { txn_total_value } and user.cash is: { user.cash }')
+                except ValueError as e:
+                    print(f'running /buy... Error 1.1.4 (user not found in DB). Redirecting to /login.')
+                    session['temp_flash'] = 'Error: Must log in.'
+                    return redirect("/login")
+                
+                # Step 1.1.5: Update database
+                                # Add new entry into the transaction table to represent the share purchase.
                 new_transaction = Transaction(
                     user_id=user.id, 
-                    txn_date=timestamp, 
                     txn_type='BOT', 
                     symbol=symbol, 
                     txn_shrs=shares, 
-                    txn_shr_price=price_bot, 
-                    txn_value=txn_value
+                    txn_shr_price=txn_price_per_share, 
+                    txn_value=txn_total_value
                 )
                 db.session.add(new_transaction)
-                db.session.commit()       
-                
-                # Reduce cash on hand by amount of stock purchase.
-                user.cash -= txn_value
+                user.cash -= txn_total_value
                 db.session.commit()
-                                
-                # Flash an indication to the user that the share sale was successful and then redirect to index.
+
+                # Step 1.1.6: Flash success message and redirect to /
                 print(f'running /buy... purchase successful, redirecting to / ')
                 flash("Share purchase processed successfully!")
-                time.sleep(3)
+                time.sleep(1)
                 return redirect("/")
-    
+
+            # Step 1.2: Handle submission via post + user input fails form validation
+            else:
+                print(f'Running /buy ... Error 1.2 (form validation errors), flashing message and redirecting user to /buy')    
+                for field, errors in form.errors.items():
+                    print(f"Running /buy ... erroring field is: {field}")
+                    for error in errors:
+                        print(f"Running /buy ... erroring on this field is: {error}")
+                session['temp_flash'] = 'Error: Invalid input. Please see the red text below for assistance.'
+                return render_template('buy.html', form=form)
+
+        # Step 2: User arrived via GET
+        else:
+            print(f'Running /buy ... user arrived via GET')
+            return render_template('buy.html', form=form)
+            """response = make_response(render_template('login.html', form=form nonce=nonce))
+            print(f'response.headers is: {response.headers}')
+            return response"""
+                
 # -----------------------------------------------------------------------
     
+    @app.route('/check_email_registered', methods=['POST'])
+    # Function returns True if email address is already registered
+    def check_email_registered(user_input):    
+        print(f'running /check_email_registered... user_input is: { user_input }')
+        user = db.session.query(User).filter_by(email = user_input).scalar()
+        if user:
+            print(f'running check_email_registered... user input is a registered email address: { user_input }.')
+            return True
+        else:
+            print(f'running /check_email_registered... user input is not a registered email address: { user_input }.') 
+        
+# -----------------------------------------------------------------------
+
+    @app.route('/check_valid_symbol', methods=['POST'])
+    # Function returns True if user entry is a valid symbol
+    def check_valid_symbol(user_input):
+        print(f'running /check_valid_symbol... user_input is: { user_input }')    
+        if lookup(user_input) != None:
+            print(f'running /check_valid_symbol... user_input is a valid stock symbol: { user_input }')
+            return lookup(user_input)
+        else:
+            print(f'running /check_valid_symbol... user_input is not a valid stock symbol: { user_input }')
+        
+# -----------------------------------------------------------------------
+
+    @app.route('/check_username_registered', methods=['POST'])
+    # Function returns True if username is already registered
+    def check_username_registered(user_input):    
+        print(f'running /check_username_registered... user_input is: { user_input }')
+        user = db.session.query(User).filter_by(username = user_input).scalar()
+        if user:
+            print(f'running /check_username_registered... user input is a registered username: { user_input }.') 
+            return True
+        else:
+            print(f'running /check_username_registered... user input is not a registered username: { user_input }.') 
+            return False
+
+# -----------------------------------------------------------------------
+
     @app.route("/history")
     @login_required
     def history():
@@ -232,7 +274,10 @@ def create_app(config_name=None):
         # Pull the symbol and the total shares owned from the transactions database
         history = db.session.query(Transaction).filter_by(user_id = session['user']).order_by(Transaction.txn_date.desc()).all()
         print(f'running /history... history is: { history } ')
-           
+        
+        for transaction in history:
+            print(f'running history... transaction timestamp is: { transaction.txn_date }')
+
         # Render index.html and pass in the values in the portfolio pull and for cash.
         return render_template("history.html", history=history)
 
@@ -240,52 +285,63 @@ def create_app(config_name=None):
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
-        """Log user in"""
         print(f'running /login ...  starting /login ')
         print(f'running /login... database URL is: { os.path.abspath("finance.sqlite") }')
+        print(f'running /login ... CSRF token is: { session.get("csrf_token", None) }')
 
-        # Step 1: Forget any user_id
+        form = LoginForm()
+
+        # Step 1: Store CSRF token and flash temp message, if any.
+        temp_flash = session.get('temp_flash', None)
+        csrf_token = session.get('csrf_token', None)
         session.clear()
+        if temp_flash:
+            flash(temp_flash)
+        if csrf_token:
+            session['csrf_token'] = csrf_token
 
-        # Step 2: User reached route via POST (as by submitting a form via POST)
+        # Step 2: Handle submission via post
         if request.method == 'POST':
-            print(f'running /login... user submitted via post ')
             
-            # Step 2.1: Ensure username was submitted
-            if not request.form.get('username'):
-                print(f'running /login... error 2.1, returning apology')
-                return apology('must provide username', 403)
+            # Step 2.1: Handle submission via post + user input clears form validation
+            if form.validate_on_submit():
+                
+                # Step 2.1.1: Pull in email and password from form and pull user item from DB.
+                email = form.email.data
+                password = form.password.data
+                print(f'running /login... user-submitted email is: { email }')
+                
+                user = db.session.query(User).filter_by(email = email).scalar()
+                print(f'running /login... queried database on user-entered email, result is: { user }')
+                
+                # Step 2.1.2: Validate that user-submitted password is correct
+                if not check_password_hash(user.hash, request.form.get("password")):
+                    print(f'running /login... error 2.1.2, flashing message and redirecting user to /login')
+                    session['temp_flash'] = 'Error: Invalid username and/or password. If you have not yet registered, please click the link below. If you have recently requested a password reset, check your email inbox and spam folders.'
+                    return render_template('login.html', form=form)
 
-            # Step 2.2: Ensure password was submitted
-            elif not request.form.get('password'):
-                print(f'running /login... error 2.2, returning apology')
-                return apology('must provide password', 403)
+                # Step 2.1.3: Remember which user has logged in
+                session['user'] = user.id
+                print(f'running /login... session[user_id] is: { session["user"] }')
 
-            # Step 2.3: Query database for username
-            username = request.form.get('username')
-            print(f'running /login... username is: { username }')
+                # Step 2.1.4: Redirect user to home page
+                print(f'running /login... redirecting to /index.  User is: { session }')
+                print(f'running /login ... session.get(user) is: { session.get("user") }')
+                return redirect("/")
             
-            user = db.session.query(User).filter_by(username = username).scalar()
-            print(f'running /login... queried database on user-entered username, result is: { user }')
-            
-            # Step 2.4: Ensure username exists
-            if not user or not check_password_hash(user.hash, request.form.get("password")):
-                print(f'running /login... error 2.4, returning apology')
-                return apology("invalid username and/or password", 403)
-
-            # Step 2.5: Remember which user has logged in
-            session['user'] = user.id
-            print(f'running /login... session[user_id] is: { session["user"] }')
-
-            # Step 2.6: Redirect user to home page
-            print(f'running /login... redirecting to /index.  User is: { session }')
-            print(f'running /login ... session.get(user) is: { session.get("user") }')
-            return redirect("/")
-
-        # Step 3: User reached route via GET (as by clicking a link or via redirect)
-        else:
-            return render_template("login.html")
+            # Step 2.2: Handle submission via post + user input fails form validation
+            else:
+                print(f'Running /login ... Error 2.2, flashing message and redirecting user to /login')
+                session['temp_flash'] = 'Error: Invalid input. Please see the red text below for assistance.'
+                return render_template('login.html', form=form)
         
+        # Step 3: User arrived via GET
+        print(f'Running /login ... user arrived via GET')
+        return render_template('login.html', form=form)
+        """response = make_response(render_template('login.html', form=form nonce=nonce))
+        print(f'response.headers is: {response.headers}')
+        return response"""
+                  
 # --------------------------------------------------------------------------------
 
     @app.route("/logout")
@@ -304,33 +360,51 @@ def create_app(config_name=None):
     @login_required
     def quote():
         print(f'running /quote... route started ')
+        print(f'running /quote... database URL is: { os.path.abspath("finance.sqlite") }')
+        print(f'running /quote ... session.get(user) is: { session.get("user", None) }')
+        print(f'running /quote ... CSRF token is: { session.get("csrf_token", None) }')
 
-        # If the user submitted the info via get, then run the following code:
-        if request.method == "GET":
-            return render_template("quote.html")
+        form = QuoteForm()
 
-        # If the user submitted the info via post, then run the following code:
-        if request.method == "POST":
-            symbol = request.form.get("symbol")
+        # Step 1: Handle submission via post
+        if request.method == 'POST':
+
+            # Step 1.1: Handle submission via post + user input clears form validation
+            if form.validate_on_submit():
+
+                # Step 1.1.1: Pull in the user inputs from quote.html
+                symbol = form.symbol.data
+
+                # Step 1.1.2: Pull quote, returning error message if symbol is invalid
+                try:
+                    name = check_valid_symbol(symbol)['name']
+                    price = check_valid_symbol(symbol)['price']
+                    print(f'running /quote... name is: { name }')
+                    print(f'running /quote... price is: { price }')
+                    print(f'running /quote... successfully pulled quote. Flashing message and directing user to quoted.html')
+                    return render_template("quoted.html", symbol=symbol, name=name, price=price)
+                except TypeError as e:
+                    print(f'running /quote... user submitted with invalid symbol: { symbol }. Flashing error and returning user to /quote.')
+                    flash('Error: Invalid stock symbol')
+                    return render_template('quote.html', form=form)
             
-            if not symbol:
-                print(f'running /quote... user submitted with no symbol')
-                return apology("Must enter a stock symbol", 400)
-            
-            symbol = symbol.strip().upper()
-            print(f'running /quote... symbol is: { symbol } ')
-            
-            # If the symbol entered isn't valid, throw an apology.
-            stock_info = (lookup(symbol))
-            print(f'running /quote... stock_info is: { stock_info } ')
-            
-            if not stock_info:
-                print(f'running /quote... no stock_info found, user submitted an invalid symbol of: { symbol }')
-                return apology("No such symbol found", 400)
-            
-            name = stock_info["name"]
-            price = stock_info["price"]
-            return render_template("quoted.html", symbol=symbol, name=name, price=price)
+            # Step 1.2: Handle submission via post + user input fails form validation
+            else:
+                print(f'Running /quote ... Error 1.2 (form validation errors), flashing message and redirecting user to /quote')    
+                for field, errors in form.errors.items():
+                    print(f"Running /quote ... erroring field is: {field}")
+                    for error in errors:
+                        print(f"Running /quote ... erroring on this field is: {error}")
+                flash('Error: Invalid input. Please see the red text below for assistance.')
+                return render_template('quote.html', form=form)
+        
+        # Step 2: User arrived via GET
+        else:
+            print(f'Running /quote ... user arrived via GET')
+            return render_template('quote.html', form=form)
+            """response = make_response(render_template('login.html', form=form nonce=nonce))
+            print(f'response.headers is: {response.headers}')
+            return response"""
     
 # ------------------------------------------------------------------------------
     
@@ -338,100 +412,148 @@ def create_app(config_name=None):
     def register():
         print(f'running /register ...  starting /register ')
         print(f'running /register... database URL is: { os.path.abspath("finance.sqlite") }')
-        
-        # If the user submitted the info via get, then run the following code:
-        if request.method == "GET":
-            return render_template("register.html")
+        print(f'running /register ... CSRF token is: { session.get("csrf_token", None) }')
 
-        # If the user submitted the info via post, then run the following code:
-        if request.method == "POST":
-            # Take the values for username and password from the registration form, respectively.
-            username = request.form.get("username")
-            password = request.form.get("password")
-            confirmation = request.form.get("confirmation")
-            print(f'running /register ...  user-entered username is: { username } ')
+        form = RegisterForm()
 
-            # If username, password, or password_confirmation are blank, throw an error message.
-            if not username or not password or not confirmation:
-                print(f'running /register ...  Error: user failed to enter username, password, or confirmation ')    
-                return apology("Apology: Please complete username, password, and password confirmation.", 400)
-                # return redirect("/register")
-            print(f'running /register ...  user-entered username is: { username } ')
+        # Step 1: Store CSRF token and flash temp message, if any.
+        temp_flash = session.get('temp_flash', None)
+        csrf_token = session.get('csrf_token', None)
+        session.clear()
+        if temp_flash:
+            flash(temp_flash)
+        if csrf_token:
+            session['csrf_token'] = csrf_token
 
-            # If password and password_confirmation don't match, throw an error message.
-            if password != confirmation:
-                print(f'running /register ...  Error: user entry for password and confirmation do not match ')
-                return apology("Apology: Please ensure password and password confirmation match.", 400)
+        # Step 2: Handle submission via post
+        if request.method == 'POST':
 
-            # If user is already registered, throw an error message.
-            # Execute the query and fetch one result
-            duplicates_username = db.session.query(User).filter_by(username = username).first()
-
-            if duplicates_username:
-                print(f'running /register ...  Error: username already taken ')
-                return apology("Apology: User already registered", 400)
-
-            # Then, insert the username and hased password into their corresponding columns in the database.
-            new_user = User(username = username, hash = generate_password_hash(password))
-            db.session.add(new_user)
-            db.session.commit()
+            # Step 2.1: Handle submission via post + user input clears form validation
+            if form.validate_on_submit():
+                
+                # Step 2.1.1: Pull in email and password from form and pull user item from DB.
+                name_first = form.name_first.data
+                name_last = form.name_last.data
+                username = form.username.data
+                email = form.email.data
+                password = form.password.data
+                print(f'running /register... user-submitted name_first is: { name_first }')
+                print(f'running /register... user-submitted name_last is: { name_last }')
+                print(f'running /register... user-submitted email is: { email }')
             
-            # Log the user in, whith the user's session id = their id in the database (which was auto-generated when we added the user to the db, in accordance with .schema)
-            session['user'] = db.session.query(User.id).filter_by(username = username).scalar()
-            # Flash an indication to the user that the share sale was successful and then redirect to index.
-            print(f'running /register ...  successfully registered user, redirecting to /buy ')
-            flash("Registration processed successfully!", 200)
-            time.sleep(3)
-            return redirect("/buy")
+                # Step 2.1.2: Ensure username and email address are not already registered
+                if not check_email_registered(email):
+                    if not check_username_registered(username):
+                        pass
+                    else:
+                        print(f'Running /register ... Error 2.1.2   (username already registered), flashing message and redirecting user to /register')
+                        session['temp_flash'] = 'Error: Username is unavailable. Please select another username.'
+                        time.sleep(1)
+                        return render_template('register.html', form=form)
+                else:
+                    print(f'Running /register ... Error 2.1.2 (email address already registered), flashing message and redirecting user to /login')
+                    session['temp_flash'] = 'Error: Email address is already registered. Please login or reset your password.'
+                    return redirect("/login")
 
+                # Step 2.1.3: Input data to DB.
+                new_user = User(
+                    name_first = name_first,
+                    name_last = name_last,
+                    email = email,
+                    username = username, 
+                    hash = generate_password_hash(password))
+                db.session.add(new_user)
+                db.session.commit()
+
+                # Step 2.1.4: Set session equal to user.id
+                session['user'] = db.session.query(User.id).filter_by(username = username).scalar()
+                # Step 2.1.3: Flash flash success message and redirect to /buy
+                print(f'running /register ...  successfully registered user, redirecting to /buy ')
+                flash("Registration processed successfully!", 200)
+                time.sleep(1)
+                return redirect("/buy")
+
+            # Step 2.2: Handle submission via post + user input clears form validation
+            else:
+                print(f'Running /register ... Error 2.2 (form validation errors), flashing message and redirecting user to /register')    
+                for field, errors in form.errors.items():
+                    print(f"Running /register ... erroring field is: {field}")
+                    for error in errors:
+                        print(f"Running /register ... erroring on this field is: {error}")
+                    
+                session['temp_flash'] = 'Error: Invalid input. Please see the red text below for assistance.'
+                return render_template('register.html', form=form)
+
+        # Step 3: User arrived via GET
+        else:
+            print(f'Running /register ... user arrived via GET')
+            return render_template('register.html', form=form)
+            """response = make_response(render_template('login.html', form=form nonce=nonce))
+            print(f'response.headers is: {response.headers}')
+            return response"""
+             
 # --------------------------------------------------------------------------------
     
     @app.route("/password_change", methods=["GET", "POST"])
     @login_required
     def password_change():
-        print(f'running /password_change ...  starting /password_change ')
+        print(f'running /password_change... route started ')
         print(f'running /password_change... database URL is: { os.path.abspath("finance.sqlite") }')
-        print(f'running /password_change... session[user] is: { session["user"] }')
+        print(f'running /password_change ... session.get(user) is: { session.get("user", None) }')
+        print(f'running /password_change ... CSRF token is: { session.get("csrf_token", None) }')
 
-        # If the user submitted the info via get, then run the following code:
-        if request.method == "GET":
-            return render_template("password_change.html")
+        form = PasswordChangeForm()
+        
+        # Step 1: Handle submission via post
+        if request.method == 'POST':
 
-        # If the user submitted the info via post, then run the following code:
-        if request.method == "POST":
-            # Take the values for username, current password, new password, and new password confirmation from the registration form, respectively.
-            username = request.form.get("username")
-            password = request.form.get("password")
-            password_new = request.form.get("password_new")
-            password_new_confirmed = request.form.get("password_new_confirmed")
+            # Step 1.1: Handle submission via post + user input clears form validation
+            if form.validate_on_submit():
 
-            # If username, password, password_new, or password_new_confirmation are blank, throw an error message.
-            if not username or not password or not password_new or not password_new_confirmed:
-                print(f'running /password_change ...  Error: missing user entry for username, password, password_new, and password_new_confirmed ')
-                return apology("Apology: Please complete username, current password, new password, and new password confirmation.", 403)
+                # Step 1.1.1: Pull in the user inputs from password_change.html
+                try:
+                    user = db.session.query(User).filter_by(email = form.email.data).scalar()
+                    print(f'running /password_change ... User object retrieved from DB via user-provided email is: { user }')
+                    # Step 1.1.1.1 If user-entered email and password don't match, flash error and render password_change.html
+                    if not check_password_hash(user.hash, form.password.data):
+                        print(f'running /password_change ... Error 1.1.1.1 (email + password mismatch) user entered email of: { form.email.data } does not correspond with the password entered.')
+                        flash('Error: invalid entry for email address and/or current password. Please check your input and try again.')
+                        return render_template('password_change.html', form=form)
+                    
+                    # Step 1.1.1.2: Hash the new password and update the DB.
+                    user.hash = generate_password_hash(form.password_new.data)
+                    db.session.commit()
+                    print(f'running /password_change ... updated user.hash in DB.')
 
-            # If password_new and password_new_confirmed don't match, throw an error.
-            if password_new != password_new_confirmed:
-                print(f'running /password_change ...  Error: password_new != password_new_confirmed ')
-                return apology("Apology: Please ensure new password and new password confirmation match.", 403)
-
-            # Query database for username
-            user = db.session.query(User).filter_by(username = username).scalar()
+                    # Step 1.1.1.3: Flash success msg redirect to index.
+                    print(f'running /password_change ...  successfully changed user password, redirecting to / ')
+                    flash('Password password change successful!')
+                    time.sleep(1)
+                    return redirect("/")
+                
+                # Step 1.1.2: If can't pull in email address and password from DB, flash error and render password_change.html
+                except Exception as e:
+                    print(f'running /password_change ...  Error 1.1.2 (email not registered) User-submitted email address not in DB. Flashing error and rendering password_change.html')
+                    flash('Error: invalid entry for email address and/or current password. Please check your input and try again.')
+                    return render_template('password_change.html', form=form)
             
-            # Ensure username exists and password is correct
-            if not user or not check_password_hash(user.hash, password):
-                print(f'running /password_change ...  Error: user not found in db or user-entered password is incorrect ')
-                return apology("Apology: Invalid username and/or password", 403)
-
-            # Hash the new password and update the DB.
-            user.hash = generate_password_hash(password_new)
-            db.session.commit()
-
-            # Flash an indication to the user that the password password_change was successful and then redirect to index.
-            print(f'running /password_change ...  successfully changed user password, redirecting to /buy ')
-            flash("Password password change successful!")
-            time.sleep(3)
-            return redirect("/buy")
+            # Step 1.2: Handle submission via post + user input fails form validation
+            else:
+                print(f'Running /password_change ... Error 1.2 (form validation errors), flashing message and redirecting user to /password_change')    
+                for field, errors in form.errors.items():
+                    print(f"Running /password_change ... erroring field is: {field}")
+                    for error in errors:
+                        print(f"Running /password_change ... erroring on this field is: {error}")
+                flash('Error: Invalid input. Please see the red text below for assistance.')
+                return render_template('password_change.html', form=form)
+        
+        # Step 2: User arrived via GET
+        else:
+            print(f'Running /password_change ... user arrived via GET')
+            return render_template('password_change.html', form=form)
+            """response = make_response(render_template('login.html', form=form nonce=nonce))
+            print(f'response.headers is: {response.headers}')
+            return response"""                
 
 # ---------------------------------------------------------------------------------
 
@@ -442,91 +564,97 @@ def create_app(config_name=None):
         print(f'running /sell... database URL is: { os.path.abspath("finance.sqlite") }')
         print(f'running /sell... session[user] is: { session["user"] }')
         
+        form = SellForm()
+        
+        # Step 1: Populate the symbols dropdown in sell.html
+        # Step 1.1: Call the list of stocks from the SQL database and convert to a list
+        symbols = db.session.query(Transaction.symbol).filter(Transaction.user_id == session['user']).distinct().order_by(Transaction.symbol).all()
+        symbols = [symbol[0] for symbol in symbols]
+        print(f'running /sell... symbols is: { symbols }')
+        
+        # Step 1.2: Pass the aforementioned list of symbols to sell.html
+        print(f'running /sell ...  user arrived via GET, displaying page ')
+        form.symbol.choices = symbols
+
+        
+        # Step 2: Pull the user object, which will be used throughout the route
         user = db.session.query(User).filter_by(id = session['user']).scalar()
 
-        # If the user submitted the info via get, then display the buy page:
-        if request.method == "GET":
-            # Call the list of stocks from the SQL database, so that it can be passed to sell.html
-            symbols = db.session.query(Transaction.symbol).filter(Transaction.user_id == session['user']).distinct().order_by(Transaction.symbol).all()
-            symbols = [symbol[0] for symbol in symbols]
-            print(f'running /sell... symbols is: { symbols }')
+        # Step 3: Handle submission via post
+        if request.method == 'POST':
+
+            # Step 3.1: Handle submission via post + user input clears form validation
+            if form.validate_on_submit():
+
+                # Step 3.1.1: Pull in the user inputs from sell.html
+                try:
+                    # Step 3.1.1.1: Pull data from form
+                    symbol = form.symbol.data
+                    shares = form.shares.data
+                    txn_shr_price = (lookup(symbol))['price']
+                    txn_value = -shares * txn_shr_price
+                    txn_shrs = shares * -1
+
+                    # Step 3.1.1.2: Retrieve from DB the shares owned in the specified symbol
+                    total_shares_owned = db.session.query(func.sum(Transaction.txn_shrs))\
+                    .filter(Transaction.user_id == user.id, Transaction.symbol == symbol)\
+                    .scalar()
+                    print(f'running /sell ...  total shares of symbol: { symbol } is: { total_shares_owned } ')
+                    
+                    # Step 3.1.1.3: Check if user has enough shares to sell
+                    if shares > total_shares_owned:
+                        print(f'running /sell ...  Error 2.1.1.3 (insufficient shrs to sell): user requested to sell: { shares } shares, but user only owns: { total_shares_owned } in symbol: { symbol }')
+                        flash(f'Error 3.1.1.3: Shares sold ({ shares }) cannot exceed shares owned ({ total_shares_owned }).')
+                        return render_template('sell.html', form=form, symbols = symbols)
+
+                    # Step 3.1.1.4: Create entry for the transaction in the DB.
+                    new_transaction = Transaction(
+                        user_id = session['user'],
+                        txn_type = 'SLD',
+                        symbol = symbol,
+                        txn_shrs = txn_shrs,
+                        txn_shr_price = txn_shr_price,
+                        txn_value = txn_value
+                    )
+                    db.session.add(new_transaction)
+                    
+                    print(f'running /sell ...  user.cash before deducting txn_value is: { user.cash } ')
+                    user.cash = user.cash - txn_value
+                    print(f'running /sell ...  user.cash after deducting txn_value is: { user.cash } ')        
+                    
+                    db.session.commit()
+                    print(f'running /sell ...  new_transaction added to DB is: { new_transaction } and user.cash is: { user.cash }')
+
+                    # Step 3.1.1.5: Flash success message and redirect user to /.
+                    print(f'running /sell ...  sale processed successfully. Redirecting user to / ')
+                    flash("Share sale processed successfully!")
+                    time.sleep(1)
+                    return redirect("/")
+
+                # Step 3.1.2: If user entry symbol or shares is invalid, flash error and render sell.html
+                except Exception as e:
+                    print(f'running /sell ...  Error 3.1.2 (invalid entry for symbol and/or shares and/or ): User entry for symbol and/or shares was invalid. Error is: {e}')
+                    flash(f'Error: Please enter a valid share symbol and positive number of shares not exceeding your current holdings.')
+                    return render_template('sell.html', form=form, symbols = symbols)
             
-            # Pass the aforementioned list of stocks to sell.html
-            print(f'running /sell ...  user arrived via GET, displaying page ')
-            return render_template('sell.html', symbols = symbols)
+            # Step 3.2: Handle submission via post + user input fails form validation
+            else:
+                print(f'Running /sell ... Error 3.2 (form validation errors), flashing message and redirecting user to /sell')    
+                for field, errors in form.errors.items():
+                    print(f"Running /sell ... erroring field is: {field}")
+                    for error in errors:
+                        print(f"Running /sell ... erroring on this field is: {error}")
+                session['temp_flash'] = 'Error: Invalid input. Please see the red text below for assistance.'
+                return render_template('sell.html', form=form, symbols = symbols)
 
-        # If the user submitted the info via post, then run the following code:
-        if request.method == "POST":
-            print(f'running /sell ...  user submitted via POST ')
+        # Step 4: User arrived via GET
+        else:
+            print(f'Running /sell ... user arrived via GET')
+            return render_template('sell.html', form=form, symbols = symbols)
 
-            # Pull in the user entry for the share they want to sell ("symbol") and the number of shares ("shares")
-            try:
-                symbol = str(request.form.get("symbol")).strip().upper()
-                shares = int(request.form.get("shares"))
-            except ValueError as e:
-                print(f'running /sell ...  Error: user entered invalid data to form. Error is: { e } ')
-                return apology("Apology: Please complete stock symbol and number of shares.", 400)
-
-            # Check: User entered an integer for number of shares?
-            if (type(shares)) != int:
-                print(f'running /sell ...  Error: user did not enter an int shares ')
-                return apology("Apology: Please enter a integer for number of shares", 400)
-
-            # Check 3: User entered positive integer?
-            if shares < 1:
-                print(f'running /sell ...  Error: user entered a negative number for shares ')
-                return apology("Apology: Please enter a positive integer for number of shares", 400)
-
-            # Will need to call the db again to check number of shares user requested to sell against the user's actual holdings.
-            total_shares = db.session.query(func.sum(Transaction.txn_shrs))\
-                .filter(Transaction.user_id == user.id, Transaction.symbol == symbol)\
-                .scalar()
-            print(f'running /sell ...  total shares is: { total_shares } ')
-
-            # Check 4: User has enough shares to sell?
-            if shares > total_shares:
-                print(f'running /sell ...  Error: user tried to sell more shares than they own; total_shares is : { total_shares } ')
-                return apology("Apology: You cannot sell more shares than you own", 400)
-
-            # Passed all checks- proceed
-            # Get current date and time, needed for txn timestamp
-            timestamp = datetime.now().replace(microsecond=0)
-
-            # Use lookup to get the price of the stock.
-            txn_shr_price = (lookup(symbol))['price']
-
-            # Calculate the total transaction value.
-            txn_value = -shares * txn_shr_price
-
-            # Add new entry into the transaction table to represent the share purchase.
-            # Note the negative value. This is to ensure that the total value of share holdings and cash are incremented appropriately.
-            txn_shrs = shares * -1
-            
-            new_transaction = Transaction(
-                user_id = session['user'],
-                txn_date = timestamp,
-                txn_type = 'SLD',
-                symbol = symbol,
-                txn_shrs = txn_shrs,
-                txn_shr_price = txn_shr_price,
-                txn_value = txn_value
-            )
-            print(f'running /sell ...  new_transaction is: { new_transaction } ')
-            db.session.add(new_transaction)
-            db.session.commit()
-            print(f'running /sell ...  new_transaction added to DB ')
-
-            # Reduce cash on hand by amount of stock purchase.
-            print(f'running /sell ...  user.cash before deducting txn_value is: { user.cash } ')
-            user.cash = user.cash - txn_value
-            db.session.commit()
-            print(f'running /sell ...  user.cash after deducting txn_value is: { user.cash } ')
-
-            # Flash an indication to the user that the share sale was successful and then redirect to index.
-            print(f'running /sell ...  sale processed successfully. Redirecting user to / ')
-            flash("Share sale processed successfully!")
-            time.sleep(3)
-            return redirect("/")
+            """response = make_response(render_template('login.html', form=form nonce=nonce))
+            print(f'response.headers is: {response.headers}')
+            return response"""
 
 # -------------------------------------------------------------------------------------
 
