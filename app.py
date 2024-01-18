@@ -1,19 +1,25 @@
+from config import Config
 from datetime import datetime
 import os
 import time
 from flask import Flask, flash, make_response, redirect, render_template, request, session, url_for
+from flask_talisman import Talisman
 from flask_migrate import Migrate
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy 
 from flask_wtf.csrf import CSRFProtect, generate_csrf
-from forms.forms import BuyForm, LoginForm, PasswordChangeForm, QuoteForm, RegisterForm, SellForm
+from forms.forms import BuyForm, LoginForm, PasswordChangeForm, ProfileForm, QuoteForm, RegisterForm, SellForm
+import logging
+from logging.handlers import RotatingFileHandler
 from sqlalchemy import func
 import sys
 from werkzeug.security import check_password_hash, generate_password_hash
-from helpers import apology, login_required, lookup, timestamp_SG, usd
+from helpers import apology, generate_nonce, login_required, lookup, timestamp_SG, usd
 
 # Must declare this before app initialization to avoid circular import.
 db = SQLAlchemy()
+csrf = CSRFProtect()
+talisman = Talisman()
 
 def create_app(config_name=None):    
     app = Flask(__name__)
@@ -29,19 +35,38 @@ def create_app(config_name=None):
         from configs.config_dev import DevelopmentConfig
         app.config.from_object(DevelopmentConfig)
     
+    # Set up logging to file
+    if Config.LOG_TO_FILE:
+        file_handler = RotatingFileHandler(Config.LOG_FILE_PATH, maxBytes=10000, backupCount=1)
+        file_handler.setLevel(logging.INFO)
+        file_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(file_format)
+        app.logger.addHandler(file_handler)
+
+    # Set up logging to console
+    if Config.LOG_TO_CONSOLE:
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_format = logging.Formatter('%(levelname)s: %(message)s')
+        console_handler.setFormatter(console_format)
+        app.logger.addHandler(console_handler)
+
+    app.logger.setLevel(logging.INFO)
+
     # Custom filter
     app.jinja_env.filters['usd'] = usd
 
     # Enable flask-migrate (allows db changes via models.py)
     migrate = Migrate(app, db)
 
-    # Allows for use of generalized filters and validators
-    external_folder_path = os.path.abspath('/home/thebuleganteng/Custom_FlaskWtf_Filters_and_Validators')
-    sys.path.append(external_folder_path)
+    # For flask-wtf generalized filters and validator, only append to sys.path if the path is set
+    sys.path.append(Config.CUSTOM_FLASKWTF_PATH)
 
     Session(app)
     db.init_app(app)
-    
+    csrf.init_app(app)
+    talisman.init_app(app, content_security_policy=app.config['CONTENT_SECURITY_POLICY'])
+
     @app.after_request
     def after_request(response):
         """Ensure responses aren't cached"""
@@ -62,8 +87,10 @@ def create_app(config_name=None):
     @app.route("/")
     @login_required
     def index():
-        print(f'running / ...  starting / ')    
-        print(f'running / ... session.get(user) is: { session.get("user") }')
+        print(f'running / ...  starting /  ')
+        print(f'running / ... database URL is: { os.path.abspath("finance.sqlite") }')
+        print(f'running / ... session.get(user) is: { session.get("user", None) }')
+        print(f'running / ... CSRF token is: { session.get("csrf_token", None) }')
 
         # Step 1: Pull user object based on session[user].
         user = db.session.query(User).filter_by(id = session.get('user')).scalar()
@@ -136,7 +163,6 @@ def create_app(config_name=None):
         return render_template(
             "index.html", portfolio=portfolio, cash=cash, total_portfolio=total_portfolio, username=username
         )
-
 
 # ---------------------------------------------------------------------
     
@@ -262,7 +288,22 @@ def create_app(config_name=None):
             return True
         else:
             print(f'running /check_username_registered... user input is not a registered username: { user_input }.') 
-            return False
+            
+# -----------------------------------------------------------------------
+
+@app.route('/csp-violation-report', methods=['POST'])
+    @csrf.exempt
+    def csp_report():
+        if request.content_type in ['application/csp-report', 'application/json']:
+            report = request.get_json(force=True)
+            # Process the report
+            # Log the report for debugging
+            print(f"CSP Report: {report}")
+        else:
+            # Handle unexpected content-type
+            print(f"Unexpected Content-Type: {request.content_type}")
+            return 'Unsupported Media Type', 415
+        return '', 204
 
 # -----------------------------------------------------------------------
 
@@ -289,6 +330,8 @@ def create_app(config_name=None):
         print(f'running /login... database URL is: { os.path.abspath("finance.sqlite") }')
         print(f'running /login ... CSRF token is: { session.get("csrf_token", None) }')
 
+        nonce = generate_nonce()
+        print(f'running /login ... nonce is:{nonce}')
         form = LoginForm()
 
         # Step 1: Store CSRF token and flash temp message, if any.
@@ -336,11 +379,10 @@ def create_app(config_name=None):
                 return render_template('login.html', form=form)
         
         # Step 3: User arrived via GET
-        print(f'Running /login ... user arrived via GET')
-        return render_template('login.html', form=form)
-        """response = make_response(render_template('login.html', form=form nonce=nonce))
-        print(f'response.headers is: {response.headers}')
-        return response"""
+        print(f'running /login ... user arrived via GET')
+        response = make_response(render_template('login.html', form=form, nonce=nonce))
+        print(f'running /login... response.headers is: {response.headers}')
+        return response
                   
 # --------------------------------------------------------------------------------
 
@@ -355,6 +397,89 @@ def create_app(config_name=None):
         return redirect("/")
 
 # -----------------------------------------------------------------------
+
+    @app.route("/profile")
+    @login_required
+    def profile():
+        print(f'running /profile ...  starting /profile  ')
+        print(f'running /profile ... database URL is: { os.path.abspath("finance.sqlite") }')
+        print(f'running /profile ... session.get(user) is: { session.get("user", None) }')
+        print(f'running /profile ... CSRF token is: { session.get("csrf_token", None) }')
+
+        form = ProfileForm()
+
+        # Step 1: Pull user object based on session[user].
+        user = db.session.query(User).filter_by(id = session.get('user')).scalar()
+        name_full = user.name_first+" "+user.name_last
+        username = user.username
+
+
+        # Step 2: Handle submission via post
+        if request.method == 'POST':
+
+            # Step 2.1: Handle submission via post + user input clears form validation
+            if form.validate_on_submit():
+
+                # Step 2.1.1: Pull in data from form
+                try:
+                    # Step 2.1.1.1: Check if (a) there is user entry for username_new and if so, (b) whether it represents an already-taken username.
+                    if form.username_new.data and check_username_registered(form.username_new.data):
+                        print(f'running /profile ... Error 2.1.1.1 (username_new already registered). User input for username_new: { username_new } is already registered. Flash error and render profile.html')
+                        flash(f'Error: Username: { username_new } is already registered. Please try another username.')
+                        return render_template('profile.html', form=form, name_full = name_full, username_old = user.username, email = user.email, created=user.created )
+                    
+                    # Step 2.1.1.2: Update user data as needed
+                    if form.name_first.data:
+                        user.name_first = form.name_first.data
+                        print(f'running /profile ... user.name_first updated to: { form.name_first.data }')
+                    if form.name_last.data:
+                        user.name_last = form.name_last.data
+                        print(f'running /profile ... user.name_first updated to: { form.name_first.data }')
+                    if form.username.data:
+                        user.username = form.username.data
+                        print(f'running /profile ... user.name_first updated to: { form.name_first.data }')
+                    db.session.commit()
+
+                    # Step 2.1.1.3: Query DB to get updated data
+                    user = db.session.query(User).filter_by(id = session.get('user')).scalar()
+                    name_full = user.name_first+" "+user.name_last
+                    
+                    # Step 2.1.1.4: Flash success message and render profile.html
+                    print(f'running /profile ... DB successfully updated with user changes. Flashing success message and rendering profile.html')
+                    flash('Profile updated successfully!')
+                    sleep(1)
+                    return render_template('profile.html', form=form, name_full = name_full, username_old = user.username, email = user.email, created=user.created )
+                
+                # Step 2.1.2: If can't pull in data from form, flash error and render profile.html
+                except Exception as e:
+                    print(f'running /profile ...  Error 2.1.2 (unable to update DB). Flashing error and rendering profile.html')
+                    flash('Error: invalid entry. Please check your input and try again.')
+                    return render_template('profile.html', form=form, name_full = name_full, username_old = user.username, email = user.email, created=user.created )
+            
+            # Step 2.2: Handle submission via post + user input fails form validation
+            else:
+                print(f'Running /profile ... Error 2.2 (form validation errors), flashing message and redirecting user to /profile')    
+                for field, errors in form.errors.items():
+                    print(f"Running /profile ... erroring field is: {field}")
+                    for error in errors:
+                        print(f"Running /profile ... erroring on this field is: {error}")
+                flash('Error: Invalid input. Please see the red text below for assistance.')
+                return render_template('profile.html', form=form, name_full = name_full, username_old = user.username, email = user.email, created=user.created )
+        
+        # Step 2: User arrived via GET
+        else:
+            print(f'Running /profile ... user arrived via GET')
+            form.name_full.data = name_full
+            form.username_old.data = user.username
+            form.email.data = user.email
+            form.created.data = user.created           
+            
+            return render_template('profile.html', form=form)
+            """response = make_response(render_template('login.html', form=form nonce=nonce))
+            print(f'response.headers is: {response.headers}')
+            return response"""                
+
+# --------------------------------------------------------------------------
 
     @app.route("/quote", methods=["GET", "POST"])
     @login_required

@@ -11,9 +11,9 @@
         <tr>
             <!-- Below are the headers for the table that shows stock info -->
             <th>Symbol</th>
-            <th>Current Price</th>
             <th>Shares Owned</th>
-            <th>Holdings Value</th>
+            <th>Current Price per Share</th>
+            <th>Current Holdings Value</th>
         </tr>
     </thead>
     <tbody>
@@ -21,8 +21,8 @@
         {% for symbol in portfolio %}
             <tr>
                 <td>{{ portfolio[symbol]["symbol"] }}</td>
-                <td>{{ portfolio[symbol]["current_price"] | usd }}</td>
                 <td>{{ portfolio[symbol]["summed_txn_shares"] }}</td>
+                <td>{{ portfolio[symbol]["current_price"] | usd }}</td>
                 <td>{{ portfolio[symbol]["summed_txn_value"] | usd }}</td>
 
             </tr>
