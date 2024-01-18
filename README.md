@@ -108,7 +108,7 @@ This project uses a submodule of the [Custom_FlaskWtf_Filters_and_Validators](ht
 *cd path/to/Custom_FlaskWtf_Filters_and_Validators*
 
 1. Pull the Latest Changes: Fetch and check out the latest changes from the remote repository of the submodule. Replace 'master' with the branch you wish to pull from, if different
-*git pull origin master*  
+*git pull origin main*  
 
 1. Commit the Submodule Update in the Main Project: Go back to the root directory of your main project and commit the changes. This step updates the main project to point to the new commit of the submodule.
 *cd ../..*  # Adjust this path to get back to your main project root
