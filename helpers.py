@@ -1,5 +1,6 @@
 import csv
 from datetime import datetime, timedelta
+import os
 import pytz
 import requests
 import subprocess
@@ -89,3 +90,7 @@ def timestamp_SG():
     print(f"Generated Timestamp (Singapore Time): {timestamp_singapore}")
     print(f"Timezone Info: {timestamp_singapore.tzinfo}")
     return timestamp_singapore
+
+# Generates a nonce to work with Talisman-managed CSP
+def generate_nonce():
+        return os.urandom(16).hex()

@@ -1,5 +1,5 @@
-from filters_generic import strip_filter, lowercase_filter, uppercase_filter
-from validators_generic import allowed_chars_validator, is_positive_validator, not_equal_to_validator, optional_if_date_validator, pw_strength_validator
+from path.to.Custom_FlaskWtf_Filters_and_Validators.filters_generic import strip_filter, lowercase_filter, uppercase_filter
+from path.to.Custom_FlaskWtf_Filters_and_Validators.validators_generic import allowed_chars_validator, is_positive_validator, not_equal_to_validator, optional_if_date_validator, pw_strength_validator
 from flask_wtf import FlaskForm
 from wtforms import DateField, EmailField, IntegerField, PasswordField, SelectField, StringField, SubmitField, ValidationError
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, Regexp, StopValidation

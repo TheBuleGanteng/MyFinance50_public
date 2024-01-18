@@ -104,12 +104,12 @@
         <!-- /username errors -->
         
         <!-- username -->
-        <div class='user_input_registration row' id='profile_hidden_username_container' style='display: none; margin-top: -5px;'>        
-            {{ form.username.label(class='col-sm-2 form-label-start-req-bold') }}
-            <div class='col-sm-8 col-md-6 col-lg-4'>
-                {{ form.username(class='form-control', id='username') }}
-            </div>
-            <div class='col-sm-2 mt-2'>
+        <div class="container-fluid" id='profile_hidden_username_container' style='display: none; padding: 0; margin: 0' !important>
+            <div class='user_input_registration row' style='margin-top: -5px;'>        
+                {{ form.username.label(class='col-sm-2 form-label-start-req-bold') }}
+                <div class='col-sm-8 col-md-6 col-lg-4'>
+                    {{ form.username(class='form-control', id='username') }}
+                </div>
             </div>
         </div>
         <!-- /username -->
@@ -131,9 +131,6 @@
             <div class='col-sm-8 col-md-6 col-lg-4'>
                 {{ form.email(class='form-control', id='email', readonly=True) }}
             </div>
-            <div class='col-sm-2 mt-2'>
-                <a href='#' id='updateButtonName' class='btn btn-profile-change btn-primary w-100'>update</a>
-            </div>
         </div>
         <!-- /email -->
 
@@ -142,9 +139,6 @@
             {{ form.created.label(class='col-sm-2 form-label-start-bold') }}
             <div class='col-sm-8 col-md-6 col-lg-4'>
                 {{ form.created(class='form-control', id='created', readonly=True) }}
-            </div>
-            <div class='col-sm-2 mt-2'>
-                <a href='#' id='updateButtoncreated' class='btn btn-profile-change btn-primary w-100'>update</a>
             </div>
         </div>
         <!-- /created -->

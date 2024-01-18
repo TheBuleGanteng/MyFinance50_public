@@ -1,8 +1,7 @@
-from config import Config
 from datetime import datetime
 import os
 import time
-from flask import Flask, flash, make_response, redirect, render_template, request, session, url_for
+from flask import Flask, flash, jsonify, make_response, redirect, render_template, request, session, url_for
 from flask_talisman import Talisman
 from flask_migrate import Migrate
 from flask_session import Session
@@ -11,6 +10,8 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 from forms.forms import BuyForm, LoginForm, PasswordChangeForm, ProfileForm, QuoteForm, RegisterForm, SellForm
 import logging
 from logging.handlers import RotatingFileHandler
+from path.to.Custom_FlaskWtf_Filters_and_Validators.validators_generic import pw_strength, pw_req_length, pw_req_letter, pw_req_num, pw_req_symbol, user_input_allowed_symbols
+import re
 from sqlalchemy import func
 import sys
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -36,15 +37,15 @@ def create_app(config_name=None):
         app.config.from_object(DevelopmentConfig)
     
     # Set up logging to file
-    if Config.LOG_TO_FILE:
-        file_handler = RotatingFileHandler(Config.LOG_FILE_PATH, maxBytes=10000, backupCount=1)
+    if app.config.get('LOG_TO_FILE', False):
+        file_handler = RotatingFileHandler(app.config.get('LOG_FILE_PATH'), maxBytes=10000, backupCount=1)
         file_handler.setLevel(logging.INFO)
         file_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         file_handler.setFormatter(file_format)
         app.logger.addHandler(file_handler)
 
     # Set up logging to console
-    if Config.LOG_TO_CONSOLE:
+    if app.config.get('LOG_TO_CONSOLE', False):
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
         console_format = logging.Formatter('%(levelname)s: %(message)s')
@@ -60,7 +61,7 @@ def create_app(config_name=None):
     migrate = Migrate(app, db)
 
     # For flask-wtf generalized filters and validator, only append to sys.path if the path is set
-    sys.path.append(Config.CUSTOM_FLASKWTF_PATH)
+    sys.path.append(app.config.get('CUSTOM_FLASKWTF_PATH'))
 
     Session(app)
     db.init_app(app)
@@ -253,17 +254,20 @@ def create_app(config_name=None):
                 
 # -----------------------------------------------------------------------
     
-    @app.route('/check_email_registered', methods=['POST'])
-    # Function returns True if email address is already registered
-    def check_email_registered(user_input):    
-        print(f'running /check_email_registered... user_input is: { user_input }')
-        user = db.session.query(User).filter_by(email = user_input).scalar()
+    @app.route('/check_email_registered', methods=['GET', 'POST'])
+    def check_email_registered_route():
+        user_input = request.form.get('user_input') if request.method == 'POST' else request.args.get('user_input')
+        return check_email_registered(user_input, False)
+
+    def check_email_registered(user_input, is_internal_call=False):
+        user = db.session.query(User).filter_by(email=user_input).scalar()
         if user:
-            print(f'running check_email_registered... user input is a registered email address: { user_input }.')
-            return True
+            print(f'running /check_email_registered... user_input is a registered email: { user_input }')
+            return 'True' if not is_internal_call else True
         else:
-            print(f'running /check_email_registered... user input is not a registered email address: { user_input }.') 
-        
+            print(f'running /check_email_registered... user_input is not a registered email: { user_input }')
+            return 'False' if not is_internal_call else False
+
 # -----------------------------------------------------------------------
 
     @app.route('/check_valid_symbol', methods=['POST'])
@@ -278,20 +282,61 @@ def create_app(config_name=None):
         
 # -----------------------------------------------------------------------
 
-    @app.route('/check_username_registered', methods=['POST'])
-    # Function returns True if username is already registered
-    def check_username_registered(user_input):    
-        print(f'running /check_username_registered... user_input is: { user_input }')
-        user = db.session.query(User).filter_by(username = user_input).scalar()
-        if user:
-            print(f'running /check_username_registered... user input is a registered username: { user_input }.') 
-            return True
+    @app.route('/check_valid_password', methods=['GET', 'POST'])
+    def check_valid_password():
+        # Step 1: Pull in data passed in by JavaScript
+        password = request.form.get('password')
+        password_confirmation = request.form.get('password_confirmation')
+        
+        # Step 2: Initialize checks_passed array
+        checks_passed = []
+        print(f'running /check_valid_password... initialized checks_passed array ')
+        
+        # Step 3: Start performing checks, adding the name of each check passed to the checks_passed array.
+        if len(password) >= pw_req_length:
+                checks_passed.append('pw_reg_length')
+                print(f'running /check_valid_password... appended pw_reg_length to checks_passed array ')
+        if len(re.findall(r'[a-zA-Z]', password)) >= pw_req_letter:
+                checks_passed.append('pw_req_letter')
+                print(f'running /check_valid_password... appended pw_req_letter to checks_passed array ')
+        if len(re.findall(r'[0-9]', password)) >= pw_req_num:
+                checks_passed.append('pw_req_num')
+                print(f'running /check_valid_password... appended pw_req_num to checks_passed array ')
+        if len(re.findall(r'[^a-zA-Z0-9]', password)) >= pw_req_symbol:
+                checks_passed.append('pw_req_symbol')
+                print(f'running /check_valid_password... appended pw_req_symbol to checks_passed array ')
+        print(f'running /check_valid_password... checks_passed array contains: { checks_passed }')
+
+        # Step 4: Ensure password and confirmation match
+        if password == password_confirmation:
+            confirmation_match = True
         else:
-            print(f'running /check_username_registered... user input is not a registered username: { user_input }.') 
-            
+            confirmation_match = False
+        print(f'running /check_valid_password... confirmation_match is: { confirmation_match }')
+
+        # Step 5: Pass the checks_passed array and confirmation_match back to JavaScript
+        print(f'running /check_valid_password... check finished, passing data back to JavaScript')
+        return jsonify({'checks_passed': checks_passed, 'confirmation_match': confirmation_match} )
+
 # -----------------------------------------------------------------------
 
-@app.route('/csp-violation-report', methods=['POST'])
+    @app.route('/check_username_registered', methods=['GET', 'POST'])
+    def check_username_registered_route():
+        user_input = request.form.get('user_input') if request.method == 'POST' else request.args.get('user_input')
+        return check_username_registered(user_input, False)
+
+    def check_username_registered(user_input, is_internal_call=False):
+        user = db.session.query(User).filter_by(username=user_input).scalar()
+        if user:
+            print(f'running /check_username_registered... user_input is a registered username: { user_input }')
+            return 'True' if not is_internal_call else True
+        else:
+            print(f'running /check_username_registered... user_input is not a registered username: { user_input }')
+            return 'False' if not is_internal_call else False
+           
+# -----------------------------------------------------------------------
+
+    @app.route('/csp-violation-report', methods=['POST'])
     @csrf.exempt
     def csp_report():
         if request.content_type in ['application/csp-report', 'application/json']:
@@ -398,7 +443,7 @@ def create_app(config_name=None):
 
 # -----------------------------------------------------------------------
 
-    @app.route("/profile")
+    @app.route("/profile", methods=["GET", "POST"])
     @login_required
     def profile():
         print(f'running /profile ...  starting /profile  ')
@@ -411,9 +456,11 @@ def create_app(config_name=None):
         # Step 1: Pull user object based on session[user].
         user = db.session.query(User).filter_by(id = session.get('user')).scalar()
         name_full = user.name_first+" "+user.name_last
-        username = user.username
-
-
+        form.name_full.data = name_full
+        form.username_old.data = user.username
+        form.email.data = user.email
+        form.created.data = user.created
+        
         # Step 2: Handle submission via post
         if request.method == 'POST':
 
@@ -422,12 +469,12 @@ def create_app(config_name=None):
 
                 # Step 2.1.1: Pull in data from form
                 try:
-                    # Step 2.1.1.1: Check if (a) there is user entry for username_new and if so, (b) whether it represents an already-taken username.
-                    if form.username_new.data and check_username_registered(form.username_new.data):
-                        print(f'running /profile ... Error 2.1.1.1 (username_new already registered). User input for username_new: { username_new } is already registered. Flash error and render profile.html')
-                        flash(f'Error: Username: { username_new } is already registered. Please try another username.')
-                        return render_template('profile.html', form=form, name_full = name_full, username_old = user.username, email = user.email, created=user.created )
-                    
+                    # Step 2.1.1.1: Check if (a) there is user entry for username and if so, (b) whether it represents an already-taken username.
+                    if form.username.data and check_username_registered(form.username.data) == True:
+                        print(f'running /profile ... Error 2.1.1.1 (username already registered). User input for username: { form.username.data } is already registered. Flash error and render profile.html')
+                        flash(f'Error: Username: { form.username.data } is already registered. Please try another username.')
+                        return render_template('profile.html', form=form )
+                                        
                     # Step 2.1.1.2: Update user data as needed
                     if form.name_first.data:
                         user.name_first = form.name_first.data
@@ -443,18 +490,22 @@ def create_app(config_name=None):
                     # Step 2.1.1.3: Query DB to get updated data
                     user = db.session.query(User).filter_by(id = session.get('user')).scalar()
                     name_full = user.name_first+" "+user.name_last
+                    form.name_full.data = name_full
+                    form.username_old.data = user.username
+                    form.email.data = user.email
+                    form.created.data = user.created
                     
                     # Step 2.1.1.4: Flash success message and render profile.html
                     print(f'running /profile ... DB successfully updated with user changes. Flashing success message and rendering profile.html')
                     flash('Profile updated successfully!')
-                    sleep(1)
-                    return render_template('profile.html', form=form, name_full = name_full, username_old = user.username, email = user.email, created=user.created )
+                    time.sleep(1)
+                    return render_template('profile.html', form=form )
                 
                 # Step 2.1.2: If can't pull in data from form, flash error and render profile.html
                 except Exception as e:
-                    print(f'running /profile ...  Error 2.1.2 (unable to update DB). Flashing error and rendering profile.html')
+                    print(f'running /profile ...  Error 2.1.2 (unable to update DB): { e }. Flashing error and rendering profile.html')
                     flash('Error: invalid entry. Please check your input and try again.')
-                    return render_template('profile.html', form=form, name_full = name_full, username_old = user.username, email = user.email, created=user.created )
+                    return render_template('profile.html', form=form )
             
             # Step 2.2: Handle submission via post + user input fails form validation
             else:
@@ -464,16 +515,11 @@ def create_app(config_name=None):
                     for error in errors:
                         print(f"Running /profile ... erroring on this field is: {error}")
                 flash('Error: Invalid input. Please see the red text below for assistance.')
-                return render_template('profile.html', form=form, name_full = name_full, username_old = user.username, email = user.email, created=user.created )
+                return render_template('profile.html', form=form )
         
         # Step 2: User arrived via GET
         else:
             print(f'Running /profile ... user arrived via GET')
-            form.name_full.data = name_full
-            form.username_old.data = user.username
-            form.email.data = user.email
-            form.created.data = user.created           
-            
             return render_template('profile.html', form=form)
             """response = make_response(render_template('login.html', form=form nonce=nonce))
             print(f'response.headers is: {response.headers}')
@@ -567,14 +613,22 @@ def create_app(config_name=None):
                 print(f'running /register... user-submitted email is: { email }')
             
                 # Step 2.1.2: Ensure username and email address are not already registered
-                if not check_email_registered(email):
-                    if not check_username_registered(username):
+                if check_email_registered(email) == False:
+                    if check_username_registered(username) == False:
                         pass
                     else:
                         print(f'Running /register ... Error 2.1.2   (username already registered), flashing message and redirecting user to /register')
                         session['temp_flash'] = 'Error: Username is unavailable. Please select another username.'
                         time.sleep(1)
-                        return render_template('register.html', form=form)
+                        return render_template(
+                            'register.html',
+                            form=form,
+                            pw_req_length=pw_req_length,
+                            pw_req_letter=pw_req_letter,
+                            pw_req_num=pw_req_num,
+                            pw_req_symbol=pw_req_symbol,
+                            user_input_allowed_symbols=user_input_allowed_symbols
+                            )
                 else:
                     print(f'Running /register ... Error 2.1.2 (email address already registered), flashing message and redirecting user to /login')
                     session['temp_flash'] = 'Error: Email address is already registered. Please login or reset your password.'
@@ -607,12 +661,28 @@ def create_app(config_name=None):
                         print(f"Running /register ... erroring on this field is: {error}")
                     
                 session['temp_flash'] = 'Error: Invalid input. Please see the red text below for assistance.'
-                return render_template('register.html', form=form)
+                return render_template(
+                            'register.html',
+                            form=form,
+                            pw_req_length=pw_req_length,
+                            pw_req_letter=pw_req_letter,
+                            pw_req_num=pw_req_num,
+                            pw_req_symbol=pw_req_symbol,
+                            user_input_allowed_symbols=user_input_allowed_symbols
+                            )
 
         # Step 3: User arrived via GET
         else:
             print(f'Running /register ... user arrived via GET')
-            return render_template('register.html', form=form)
+            return render_template(
+                            'register.html',
+                            form=form,
+                            pw_req_length=pw_req_length,
+                            pw_req_letter=pw_req_letter,
+                            pw_req_num=pw_req_num,
+                            pw_req_symbol=pw_req_symbol,
+                            user_input_allowed_symbols=user_input_allowed_symbols
+                            )
             """response = make_response(render_template('login.html', form=form nonce=nonce))
             print(f'response.headers is: {response.headers}')
             return response"""
