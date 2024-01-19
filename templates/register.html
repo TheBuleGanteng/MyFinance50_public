@@ -6,11 +6,12 @@
 
 {% block main %}
 <!-- Instructional text -->
-<div class="container-fluid">
+<div class="container-fluid mb-1">
+    <div class="container-fluid container-instructions-start-bold">
+        Please complete all the fields below and click "submit" to create your account.
+    </div>
     <div class="container-fluid container-instructions-start">
-        <div class="container-fluid container-instructions-start-bold">
-            Please complete all the fields below and click "submit" to create your account.
-        </div>
+        Required fields
     </div>
 </div>
 <!-- /Instructional text -->
@@ -20,55 +21,55 @@
 
         <!-- name_first -->
         <div class='user_input_registration row'>
-            {{ form.name_first.label(class='col-sm-2 form-label-start-bold') }}
-            <div class='col-sm-8 col-md-6 col-lg-4'>
-                {{ form.name_first(class='form-control mx-auto w-auto', id='name_first', autocomplete='off', autofocus=True, placeholder='First name') }}
+            <div class='col-sm-2' style='align-self: flex-start; text-align: start'>
+                {{ form.name_first.label(class='form-label-start-req-bold') }}
             </div>
-        </div>
-        <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
-            {% if form.name_first.errors %}
-                <div class='text-danger'>
-                    {% for error in form.name_first.errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.name_first(class='form-control', id='name_first', autocomplete='off', autofocus=True, placeholder='First name') }}
+                {% if form.name_first.errors %}
+                    <div class='text-danger mt-2'>
+                        {% for error in form.name_first.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
         </div>
         <!-- /name_first -->
 
         <!-- name_last -->
         <div class='user_input_registration row'>
-            {{ form.name_last.label(class='col-sm-2 form-label-start-bold') }}
-            <div class='col-sm-8 col-md-6 col-lg-4'>
-                {{ form.name_last(class='form-control mx-auto w-auto', id='name_last', autocomplete='off', autofocus=True, placeholder='Last name') }}
+            <div class='col-sm-2' style='align-self: flex-start; text-align: start'>
+                {{ form.name_last.label(class='form-label-start-req-bold') }}
             </div>
-        </div>
-        <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
-            {% if form.name_last.errors %}
-                <div class='text-danger'>
-                    {% for error in form.name_last.errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.name_last(class='form-control', id='name_last', autocomplete='off', autofocus=True, placeholder='First name') }}
+                {% if form.name_last.errors %}
+                    <div class='text-danger mt-2'>
+                        {% for error in form.name_last.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
         </div>
         <!-- /name_last -->
 
         <!-- username -->
         <div class='user_input_registration row'>
-            {{ form.username.label(class='col-sm-2 form-label-start-bold') }}
-            <div class='col-sm-8 col-md-6 col-lg-4'>
-                {{ form.username(class='form-control mx-auto w-auto', id='username', autocomplete='off', autofocus=True, placeholder='Username') }}
+            <div class='col-sm-2' style='align-self: flex-start; text-align: start'>
+                {{ form.username.label(class='form-label-start-req-bold') }}
             </div>
-        </div>
-        <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
-            {% if form.username.errors %}
-                <div class='text-danger'>
-                    {% for error in form.username.errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.username(class='form-control', id='username', autocomplete='off', autofocus=True, placeholder='First name') }}
+                {% if form.username.errors %}
+                    <div class='text-danger mt-2'>
+                        {% for error in form.username.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
         </div>
         <!-- /username -->
 
@@ -85,19 +86,19 @@
 
         <!-- email -->
         <div class='user_input_registration row'>
-            {{ form.email.label(class='col-sm-2 form-label-start-bold') }}
-            <div class='col-sm-8 col-md-6 col-lg-4'>
-                {{ form.email(class='form-control mx-auto w-auto', id='email', autocomplete='off', autofocus=True, placeholder='Email address') }}
+            <div class='col-sm-2' style='align-self: flex-start; text-align: start'>
+                {{ form.email.label(class='form-label-start-req-bold') }}
             </div>
-        </div>
-        <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
-            {% if form.email.errors %}
-                <div class='text-danger'>
-                    {% for error in form.email.errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.email(class='form-control', id='email', autocomplete='off', autofocus=True, placeholder='First name') }}
+                {% if form.email.errors %}
+                    <div class='text-danger mt-2'>
+                        {% for error in form.email.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
         </div>
         <!-- /email -->
 
@@ -114,19 +115,19 @@
         
         <!-- password -->
         <div class='user_input_registration row'>
-            {{ form.password.label(class='col-sm-2 form-label-start-bold') }}
-            <div class='col-sm-8 col-md-6 col-lg-4'>
-                {{ form.password(class='form-control mx-auto w-auto', id='password', autocomplete='off', autofocus=True, placeholder='Password') }}
+            <div class='col-sm-2' style='align-self: flex-start; text-align: start'>
+                {{ form.password.label(class='form-label-start-req-bold') }}
             </div>
-        </div>
-        <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
-            {% if form.password.errors %}
-                <div class='text-danger'>
-                    {% for error in form.password.errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.password(class='form-control', id='password', autocomplete='off', autofocus=True, placeholder='First name') }}
+                {% if form.password.errors %}
+                    <div class='text-danger mt-2'>
+                        {% for error in form.password.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
         </div>
 
         <div class='user-input-validation row'>
@@ -150,19 +151,19 @@
 
         <!-- password_confirmation -->
         <div class='user_input_registration row'>
-            {{ form.password_confirmation.label(class='col-sm-2 form-label-start-bold') }}
-            <div class='col-sm-8 col-md-6 col-lg-4'>
-                {{ form.password_confirmation(class='form-control mx-auto w-auto', id='password_confirmation', autocomplete='off', autofocus=True, placeholder='Password confirmation') }}
+            <div class='col-sm-2' style='align-self: flex-start; text-align: start'>
+                {{ form.password_confirmation.label(class='form-label-start-req-bold') }}
             </div>
-        </div>
-        <div class='col-sm-12 col-md-8 col-lg-6 d-flex align-items-center'>
-            {% if form.password_confirmation.errors %}
-                <div class='text-danger'>
-                    {% for error in form.password_confirmation.errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
+            <div class='col-sm-8 col-md-6 col-lg-4'>
+                {{ form.password_confirmation(class='form-control', id='password_confirmation', autocomplete='off', autofocus=True, placeholder='First name') }}
+                {% if form.password_confirmation.errors %}
+                    <div class='text-danger mt-2'>
+                        {% for error in form.password_confirmation.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
         </div>
 
         <div class='user-input-validation row'>

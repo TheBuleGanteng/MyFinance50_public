@@ -10,7 +10,7 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 from forms.forms import BuyForm, LoginForm, PasswordChangeForm, ProfileForm, QuoteForm, RegisterForm, SellForm
 import logging
 from logging.handlers import RotatingFileHandler
-from path.to.Custom_FlaskWtf_Filters_and_Validators.validators_generic import pw_strength, pw_req_length, pw_req_letter, pw_req_num, pw_req_symbol, user_input_allowed_symbols
+from Custom_FlaskWtf_Filters_and_Validators.validators_generic import pw_strength, pw_req_length, pw_req_letter, pw_req_num, pw_req_symbol, user_input_allowed_symbols
 import re
 from sqlalchemy import func
 import sys

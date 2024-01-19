@@ -1,5 +1,5 @@
-from path.to.Custom_FlaskWtf_Filters_and_Validators.filters_generic import strip_filter, lowercase_filter, uppercase_filter
-from path.to.Custom_FlaskWtf_Filters_and_Validators.validators_generic import allowed_chars_validator, is_positive_validator, not_equal_to_validator, optional_if_date_validator, pw_strength_validator
+from Custom_FlaskWtf_Filters_and_Validators.filters_generic import strip_filter, lowercase_filter, uppercase_filter
+from Custom_FlaskWtf_Filters_and_Validators.validators_generic import allowed_chars_validator, is_positive_validator, not_equal_to_validator, optional_if_date_validator, pw_strength_validator
 from flask_wtf import FlaskForm
 from wtforms import DateField, EmailField, IntegerField, PasswordField, SelectField, StringField, SubmitField, ValidationError
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, Regexp, StopValidation
@@ -11,12 +11,12 @@ class LoginForm(FlaskForm):
     submit_button = SubmitField('Log In')
 
 class RegisterForm(FlaskForm):
-    name_first = StringField('First name', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'autofocus': True})
-    name_last = StringField('Last name', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator])
-    email = EmailField('Email address', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator], render_kw={'required': True, 'type': 'email'})
-    username = StringField('Username', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
-    password = PasswordField('Password', filters=[strip_filter], validators=[DataRequired(), pw_strength_validator])
-    password_confirmation = PasswordField('Password confirmation', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.')], render_kw={'required': True})
+    name_first = StringField('First name:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'autofocus': True})
+    name_last = StringField('Last name:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator])
+    email = EmailField('Email address:', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator], render_kw={'required': True, 'type': 'email'})
+    username = StringField('Username:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
+    password = PasswordField('Password:', filters=[strip_filter], validators=[DataRequired(), pw_strength_validator])
+    password_confirmation = PasswordField('Password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.')], render_kw={'required': True})
     submit_button = SubmitField('Register')
 
 class BuyForm(FlaskForm):
