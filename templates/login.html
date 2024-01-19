@@ -41,6 +41,8 @@
 
             {{ form.submit_button(class='btn btn-primary', id='submit_button') }}
         </form>
-        <a href="/register">New user? Click here to create an account</a>
+        <a href="{{ url_for('register') }}">New user? Click here to create an account</a>
+        <br>
+        <a href="{{ url_for('password_reset_request') }}">Forgot your password? Click here to reset</a>
     </div>
 {% endblock %}

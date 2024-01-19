@@ -1,26 +1,32 @@
+from Custom_FlaskWtf_Filters_and_Validators.validators_generic import pw_strength, pw_req_length, pw_req_letter, pw_req_num, pw_req_symbol, user_input_allowed_symbols
 from datetime import datetime
-import os
-import time
+from dotenv import load_dotenv
 from flask import Flask, flash, jsonify, make_response, redirect, render_template, request, session, url_for
 from flask_talisman import Talisman
+from flask_mail import Mail, Message
 from flask_migrate import Migrate
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy 
 from flask_wtf.csrf import CSRFProtect, generate_csrf
-from forms.forms import BuyForm, LoginForm, PasswordChangeForm, ProfileForm, QuoteForm, RegisterForm, SellForm
+from forms.forms import BuyForm, LoginForm, PasswordChangeForm, PasswordResetRequestForm, PasswordResetRequestNewForm, ProfileForm, QuoteForm, RegisterForm, SellForm
+from helpers import apology, generate_nonce, generate_unique_token, login_required, lookup, timestamp_SG, usd, verify_unique_token
 import logging
 from logging.handlers import RotatingFileHandler
-from Custom_FlaskWtf_Filters_and_Validators.validators_generic import pw_strength, pw_req_length, pw_req_letter, pw_req_num, pw_req_symbol, user_input_allowed_symbols
+import os
 import re
 from sqlalchemy import func
 import sys
+import time
+from urllib.parse import unquote
 from werkzeug.security import check_password_hash, generate_password_hash
-from helpers import apology, generate_nonce, login_required, lookup, timestamp_SG, usd
+
 
 # Must declare this before app initialization to avoid circular import.
 db = SQLAlchemy()
 csrf = CSRFProtect()
+mail = Mail()
 talisman = Talisman()
+load_dotenv()
 
 def create_app(config_name=None):    
     app = Flask(__name__)
@@ -66,6 +72,7 @@ def create_app(config_name=None):
     Session(app)
     db.init_app(app)
     csrf.init_app(app)
+    mail.init_app(app)
     talisman.init_app(app, content_security_policy=app.config['CONTENT_SECURITY_POLICY'])
 
     @app.after_request
@@ -182,6 +189,7 @@ def create_app(config_name=None):
 
             # Step 1.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
+                print(f'running /password_change ... User: { session["user"] } submitted via post and user input passed form validation')
 
                 # Step 1.1.1: Pull in the user inputs from buy.html
                 symbol = form.symbol.data
@@ -212,7 +220,7 @@ def create_app(config_name=None):
                 except ValueError as e:
                     print(f'running /buy... Error 1.1.4 (user not found in DB). Redirecting to /login.')
                     session['temp_flash'] = 'Error: Must log in.'
-                    return redirect("/login")
+                    return redirect(url_for('login'))
                 
                 # Step 1.1.5: Update database
                                 # Add new entry into the transaction table to represent the share purchase.
@@ -232,7 +240,7 @@ def create_app(config_name=None):
                 print(f'running /buy... purchase successful, redirecting to / ')
                 flash("Share purchase processed successfully!")
                 time.sleep(1)
-                return redirect("/")
+                return redirect(url_for('index'))
 
             # Step 1.2: Handle submission via post + user input fails form validation
             else:
@@ -393,6 +401,7 @@ def create_app(config_name=None):
             
             # Step 2.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
+                print(f'running /password_change ... User submitted via post and user input passed form validation')
                 
                 # Step 2.1.1: Pull in email and password from form and pull user item from DB.
                 email = form.email.data
@@ -403,7 +412,7 @@ def create_app(config_name=None):
                 print(f'running /login... queried database on user-entered email, result is: { user }')
                 
                 # Step 2.1.2: Validate that user-submitted password is correct
-                if not check_password_hash(user.hash, request.form.get("password")):
+                if not check_password_hash(user.hash, form.password.data):
                     print(f'running /login... error 2.1.2, flashing message and redirecting user to /login')
                     session['temp_flash'] = 'Error: Invalid username and/or password. If you have not yet registered, please click the link below. If you have recently requested a password reset, check your email inbox and spam folders.'
                     return render_template('login.html', form=form)
@@ -415,7 +424,7 @@ def create_app(config_name=None):
                 # Step 2.1.4: Redirect user to home page
                 print(f'running /login... redirecting to /index.  User is: { session }')
                 print(f'running /login ... session.get(user) is: { session.get("user") }')
-                return redirect("/")
+                return redirect(url_for('index'))
             
             # Step 2.2: Handle submission via post + user input fails form validation
             else:
@@ -439,9 +448,252 @@ def create_app(config_name=None):
         session.clear()
 
         # Redirect user to login form
-        return redirect("/")
+        return redirect(url_for('index'))
 
 # -----------------------------------------------------------------------
+
+    @app.route("/password_change", methods=["GET", "POST"])
+    @login_required
+    def password_change():
+        print(f'running /password_change... route started ')
+        print(f'running /password_change... database URL is: { os.path.abspath("finance.sqlite") }')
+        print(f'running /password_change ... session.get(user) is: { session.get("user", None) }')
+        print(f'running /password_change ... CSRF token is: { session.get("csrf_token", None) }')
+
+        form = PasswordChangeForm()
+        
+        # Step 1: Handle submission via post
+        if request.method == 'POST':
+
+            # Step 1.1: Handle submission via post + user input clears form validation
+            if form.validate_on_submit():
+                print(f'running /password_change ... User: { session["user"] } submitted via post and user input passed form validation')
+
+                # Step 1.1.1: Pull in the user inputs from password_change.html
+                try:
+                    user = db.session.query(User).filter_by(email = form.email.data).scalar()
+                    print(f'running /password_change ... User object retrieved from DB via user-provided email is: { user }')
+                    # Step 1.1.1.1 If user-entered email and password don't match, flash error and render password_change.html
+                    if not check_password_hash(user.hash, form.password_old.data):
+                        print(f'running /password_change ... Error 1.1.1.1 (email + password mismatch) user entered email of: { form.email.data } does not correspond with the password entered.')
+                        flash('Error: invalid entry for email address and/or current password. Please check your input and try again.')
+                        return render_template('password_change.html', form=form)
+
+                    # Step 1.1.1.2: Hash the new password and update the DB.
+                    user.hash = generate_password_hash(form.password.data)
+                    db.session.commit()
+                    print(f'running /password_change ... updated user.hash in DB.')
+
+                    # Step 1.1.1.3: Flash success msg redirect to index.
+                    print(f'running /password_change ...  successfully changed user password, redirecting to / ')
+                    flash('Password password change successful!')
+                    time.sleep(1)
+                    return redirect(url_for('index'))
+                
+                # Step 1.1.2: If can't pull in email address and password from DB, flash error and render password_change.html
+                except Exception as e:
+                    print(f'running /password_change ...  Error 1.1.2 (email not registered) User-submitted email address not in DB. Flashing error and rendering password_change.html')
+                    flash('Error: invalid entry for email address and/or current password. Please check your input and try again.')
+                    return render_template('password_change.html', form=form)
+            
+            # Step 1.2: Handle submission via post + user input fails form validation
+            else:
+                print(f'Running /password_change ... Error 1.2 (form validation errors), flashing message and redirecting user to /password_change')    
+                for field, errors in form.errors.items():
+                    print(f"Running /password_change ... erroring field is: {field}")
+                    for error in errors:
+                        print(f"Running /password_change ... erroring on this field is: {error}")
+                flash('Error: Invalid input. Please see the red text below for assistance.')
+                return render_template('password_change.html', form=form)
+        
+        # Step 2: User arrived via GET
+        else:
+            print(f'Running /password_change ... user arrived via GET')
+            return render_template('password_change.html', form=form)
+            
+# ---------------------------------------------------------------------------------
+    
+    @app.route("/password_reset_request", methods=["GET", "POST"])
+    def password_reset_request():
+        print(f'running /password_reset_request... route started ')
+        print(f'running /password_reset_request... database URL is: { os.path.abspath("finance.sqlite") }')
+        print(f'running /password_reset_request ... CSRF token is: { session.get("csrf_token", None) }')
+
+        form = PasswordResetRequestForm()
+
+        # Step 1: Store CSRF token and flash temp message, if any.
+        temp_flash = session.get('temp_flash', None)
+        csrf_token = session.get('csrf_token', None)
+        session.clear()
+        if temp_flash:
+            flash(temp_flash)
+        if csrf_token:
+            session['csrf_token'] = csrf_token
+
+        
+        # Step 2: Handle submission via post
+        if request.method == 'POST':
+        
+            # Step 2.1: Handle submission via post + user input clears form validation
+            if form.validate_on_submit():
+                print(f'running /password_reset_request ... User submitted via post and user input passed form validation')
+
+                # Step 2.1.1: Pull in the user inputs from form
+                user = db.session.query(User).filter_by(email = form.email.data).scalar()
+
+                try:
+                    print(f'running /password_reset_request ... User object retrieved from DB via user-provided email is: { user }. The corresponding user.id is: { user.id } and the corresponding user.email is: { user.email }')
+                    
+                    # Step 2.1.1.1: Generate token
+                    token = generate_unique_token(user.id, app.config['SECRET_KEY'])
+                    print(f'running /password_reset_request ... token generated')
+
+                    # Step 2.1.1.2: Formulate email
+                    username = user.username
+                    sender = 'info@mattmcdonnell.net'
+                    recipients = [user.email]
+                    subject = 'Password reset from MyFinance50'
+                    url = url_for('password_reset_request_new', token=token, _external=True)
+                    body = f'''Dear { username }: to reset your password, please visit the following link: { url }
+
+    If you did not make this request, you may ignore it.
+
+    Thank you,
+    Team MyFinance50'''
+
+                    # Step 2.1.1.3: Send email.
+                    msg = Message(subject=subject, body=body, sender=sender, recipients=recipients)
+                    mail.send(msg)
+                    print(f'Running /password_reset_request... reset email sent to email address: { user.email }.')
+
+                    # Step 2.1.1.4: Flash success msg redirect to login.
+                    print(f'running /password_reset_request ...  successfully changed user password, redirecting to / ')
+                    session['temp_flash'] = 'Reset email sent. Please do not forget to check your spam folder!'
+                    time.sleep(1)
+                    return redirect(url_for('login'))
+                
+                # Step 2.1.2: If can't send email (likely due to user entering an unregistered email address), still flash
+                # email sent message and redirect to login. This is done to reduce chances of brute force attack.
+                except Exception as e:
+                    print(f'running /password_reset_request ...  Error 1.1.2 (user-submitted email not registered) Flashing sent email msg and redirecting to /login')
+                    session['temp_flash'] = 'Reset email sent. Please do not forget to check your spam folder!'
+                    time.sleep(1)
+                    return redirect(url_for('login'))
+            
+            # Step 2.2: Handle submission via post + user input fails form validation
+            else:
+                print(f'Running /password_reset_request ... Error 1.2 (form validation errors), flashing message and redirecting user to /password_change')    
+                for field, errors in form.errors.items():
+                    print(f"Running /password_reset_request ... erroring field is: {field}")
+                    for error in errors:
+                        print(f"Running /password_reset_request ... erroring on this field is: {error}")
+                session['temp_flash'] = 'Error: Invalid input. Please see the red text below for assistance.'
+                return render_template('password_reset_request.html', form=form)
+        
+        # Step 3: User arrived via GET
+        else:
+            print(f'Running /password_reset_request ... user arrived via GET')
+            return render_template('password_reset_request.html', form=form)
+            
+# ---------------------------------------------------------------------------------
+    
+    @app.route("/password_reset_request_new/<token>", methods=["GET", "POST"])
+    def password_reset_request_new(token):
+        print(f'running /password_reset_request_new... route started ')
+        print(f'running /password_reset_request_new... database URL is: { os.path.abspath("finance.sqlite") }')
+        print(f'running /password_reset_request_new ... CSRF token is: { session.get("csrf_token", None) }')
+        # Step 1: Take the token and decode it
+        decoded_token = unquote(token)
+        user = verify_unique_token(decoded_token, app.config['SECRET_KEY'], int(os.getenv('MAX_TOKEN_AGE_SECONDS')))
+        
+        # Step 2: If token is invalid, flash error msg and redirect user to login
+        if not user:
+            print(f'Running /password_reset_request_new route... no user found.')
+            session['temp_flash'] = 'Error: Invalid or expired reset link. Please login or re-request your password reset.'    
+            return redirect(url_for('login'))
+        
+        # Step 2: If token is valid, set user.id to user['user_id'] property from token
+        user = user
+        print(f'Running /pw_reset_new route... user is: { user }.')
+
+        form = PasswordResetRequestNewForm()
+        
+        # Step 3: Handle submission via post
+        if request.method == 'POST':
+        
+            # Step 3.1: Handle submission via post + user input clears form validation
+            if form.validate_on_submit():
+                print(f'running /password_reset_request_new ... User submitted via post and user input passed form validation')
+
+                # Step 3.1.1: Pull in the user inputs from form
+                user = db.session.query(User).filter_by(id = user).scalar()
+                print(f'running /password_reset_request_new ... user object extracted from token is: { user }')
+                print(f'running /password_reset_request_new ... user.hash is: { user.hash }')
+                print(f'running /password_reset_request_new ... form.password.data is: { form.password.data }')
+
+                try:                    
+                    # Step 1.1.1.1: Check to ensure new password does not match existing password
+                    if check_password_hash(user.hash, form.password.data):
+                        print(f'running /password_reset_request_new ... Error 1.1.1.1 (new password matches existing). Flashing error and rendering password_reset_request_new.html')
+                        flash('Error: new password cannot match old password. Please try again.')
+                        return render_template('password_reset_request_new.html', 
+                                token=token,
+                                form=form,
+                                pw_req_length=pw_req_length, 
+                                pw_req_letter=pw_req_letter, 
+                                pw_req_num=pw_req_num, 
+                                pw_req_symbol=pw_req_symbol,
+                                user_input_allowed_symbols=user_input_allowed_symbols)    
+                    
+                    # Step 1.1.1.2: Update DB with new password
+                    user.hash = generate_password_hash(form.password.data)
+                    db.session.commit()
+                    print(f'running /password_reset_request_new ... password reset for user { user } entered into DB')
+
+                    # Step 1.1.1.3: Flash success message and redirect user to index
+                    print(f'running /password_reset_request_new ... completed route for { user }. Flashing success message and redirecting to /index')
+                    session['temp_flash'] = 'Password reset successful!'
+                    time.sleep(1)
+                    return redirect(url_for('index'))
+                
+                # Step 1.1.2: If can't update password (likely due to no user object resulting from
+                # use of an invalid token) flash error msg and redirect to login.
+                except Exception as e:
+                    print(f'running /password_reset_request_new ...  Error 1.1.2 (unable to update DB) Flashing error msg and redirecting to /login')
+                    session['temp_flash'] = 'Error: Invalid token. Please login or repeat your password reset request via the link below.'
+                    time.sleep(1)
+                    return redirect(url_for('login'))
+            
+            # Step 1.2: Handle submission via post + user input fails form validation
+            else:
+                print(f'Running /password_reset_request_new ... Error 1.2 (form validation errors), flashing message and redirecting user to /password_change')    
+                for field, errors in form.errors.items():
+                    print(f"Running /password_reset_request_new ... erroring field is: {field}")
+                    for error in errors:
+                        print(f"Running /password_reset_request_new ... erroring on this field is: {error}")
+                flash('Error: Invalid input. Please see the red text below for assistance.')
+                return render_template('password_reset_request_new.html', 
+                                token=token,
+                                form=form,
+                                pw_req_length=pw_req_length, 
+                                pw_req_letter=pw_req_letter, 
+                                pw_req_num=pw_req_num, 
+                                pw_req_symbol=pw_req_symbol,
+                                user_input_allowed_symbols=user_input_allowed_symbols)
+        
+        # Step 2: User arrived via GET
+        else:
+            print(f'Running /password_reset_request_new ... user arrived via GET')
+            return render_template('password_reset_request_new.html', 
+                                token=token,
+                                form=form,
+                                pw_req_length=pw_req_length, 
+                                pw_req_letter=pw_req_letter, 
+                                pw_req_num=pw_req_num, 
+                                pw_req_symbol=pw_req_symbol,
+                                user_input_allowed_symbols=user_input_allowed_symbols)
+            
+# ---------------------------------------------------------------------------------
 
     @app.route("/profile", methods=["GET", "POST"])
     @login_required
@@ -466,6 +718,7 @@ def create_app(config_name=None):
 
             # Step 2.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
+                print(f'running /password_change ... User: { session["user"] } submitted via post and user input passed form validation')
 
                 # Step 2.1.1: Pull in data from form
                 try:
@@ -542,6 +795,7 @@ def create_app(config_name=None):
 
             # Step 1.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
+                print(f'running /password_change ... User: { session["user"] } submitted via post and user input passed form validation')
 
                 # Step 1.1.1: Pull in the user inputs from quote.html
                 symbol = form.symbol.data
@@ -601,6 +855,7 @@ def create_app(config_name=None):
 
             # Step 2.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
+                print(f'running /password_change ... User submitted via post and user input passed form validation')
                 
                 # Step 2.1.1: Pull in email and password from form and pull user item from DB.
                 name_first = form.name_first.data
@@ -632,7 +887,7 @@ def create_app(config_name=None):
                 else:
                     print(f'Running /register ... Error 2.1.2 (email address already registered), flashing message and redirecting user to /login')
                     session['temp_flash'] = 'Error: Email address is already registered. Please login or reset your password.'
-                    return redirect("/login")
+                    return redirect(url_for('login'))
 
                 # Step 2.1.3: Input data to DB.
                 new_user = User(
@@ -650,7 +905,7 @@ def create_app(config_name=None):
                 print(f'running /register ...  successfully registered user, redirecting to /buy ')
                 flash("Registration processed successfully!", 200)
                 time.sleep(1)
-                return redirect("/buy")
+                return redirect(url_for('buy'))
 
             # Step 2.2: Handle submission via post + user input clears form validation
             else:
@@ -689,66 +944,6 @@ def create_app(config_name=None):
              
 # --------------------------------------------------------------------------------
     
-    @app.route("/password_change", methods=["GET", "POST"])
-    @login_required
-    def password_change():
-        print(f'running /password_change... route started ')
-        print(f'running /password_change... database URL is: { os.path.abspath("finance.sqlite") }')
-        print(f'running /password_change ... session.get(user) is: { session.get("user", None) }')
-        print(f'running /password_change ... CSRF token is: { session.get("csrf_token", None) }')
-
-        form = PasswordChangeForm()
-        
-        # Step 1: Handle submission via post
-        if request.method == 'POST':
-
-            # Step 1.1: Handle submission via post + user input clears form validation
-            if form.validate_on_submit():
-
-                # Step 1.1.1: Pull in the user inputs from password_change.html
-                try:
-                    user = db.session.query(User).filter_by(email = form.email.data).scalar()
-                    print(f'running /password_change ... User object retrieved from DB via user-provided email is: { user }')
-                    # Step 1.1.1.1 If user-entered email and password don't match, flash error and render password_change.html
-                    if not check_password_hash(user.hash, form.password_old.data):
-                        print(f'running /password_change ... Error 1.1.1.1 (email + password mismatch) user entered email of: { form.email.data } does not correspond with the password entered.')
-                        flash('Error: invalid entry for email address and/or current password. Please check your input and try again.')
-                        return render_template('password_change.html', form=form)
-                    
-                    # Step 1.1.1.2: Hash the new password and update the DB.
-                    user.hash = generate_password_hash(form.password.data)
-                    db.session.commit()
-                    print(f'running /password_change ... updated user.hash in DB.')
-
-                    # Step 1.1.1.3: Flash success msg redirect to index.
-                    print(f'running /password_change ...  successfully changed user password, redirecting to / ')
-                    flash('Password password change successful!')
-                    time.sleep(1)
-                    return redirect("/")
-                
-                # Step 1.1.2: If can't pull in email address and password from DB, flash error and render password_change.html
-                except Exception as e:
-                    print(f'running /password_change ...  Error 1.1.2 (email not registered) User-submitted email address not in DB. Flashing error and rendering password_change.html')
-                    flash('Error: invalid entry for email address and/or current password. Please check your input and try again.')
-                    return render_template('password_change.html', form=form)
-            
-            # Step 1.2: Handle submission via post + user input fails form validation
-            else:
-                print(f'Running /password_change ... Error 1.2 (form validation errors), flashing message and redirecting user to /password_change')    
-                for field, errors in form.errors.items():
-                    print(f"Running /password_change ... erroring field is: {field}")
-                    for error in errors:
-                        print(f"Running /password_change ... erroring on this field is: {error}")
-                flash('Error: Invalid input. Please see the red text below for assistance.')
-                return render_template('password_change.html', form=form)
-        
-        # Step 2: User arrived via GET
-        else:
-            print(f'Running /password_change ... user arrived via GET')
-            return render_template('password_change.html', form=form)
-            
-# ---------------------------------------------------------------------------------
-
     @app.route("/sell", methods=["GET", "POST"])
     @login_required
     def sell():
@@ -777,6 +972,7 @@ def create_app(config_name=None):
 
             # Step 3.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
+                print(f'running /password_change ... User: { session["user"] } submitted via post and user input passed form validation')
 
                 # Step 3.1.1: Pull in the user inputs from sell.html
                 try:
@@ -821,7 +1017,7 @@ def create_app(config_name=None):
                     print(f'running /sell ...  sale processed successfully. Redirecting user to / ')
                     flash("Share sale processed successfully!")
                     time.sleep(1)
-                    return redirect("/")
+                    return redirect(url_for('index'))
 
                 # Step 3.1.2: If user entry symbol or shares is invalid, flash error and render sell.html
                 except Exception as e:

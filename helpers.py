@@ -1,5 +1,6 @@
 import csv
 from datetime import datetime, timedelta
+from itsdangerous import TimedSerializer as Serializer
 import os
 import pytz
 import requests
@@ -94,3 +95,32 @@ def timestamp_SG():
 # Generates a nonce to work with Talisman-managed CSP
 def generate_nonce():
         return os.urandom(16).hex()
+
+
+# Set token age (used for token generation and to set auto removal of stale DB records)
+max_token_age_seconds = os.getenv('MAX_TOKEN_AGE_SECONDS')
+
+# Token generation for password reset and registration
+def generate_unique_token(id, secret_key):
+    print(f'running generate_unique_token(id)... starting')
+    print(f'running generate_unique_token(id)... secret_key is: { secret_key }')
+    s = Serializer(secret_key, salt='reset-salt')
+    print(f'running generate_unique_token(id)... generated token')
+    return s.dumps({'id': id})
+
+# Token validation for password reset and registration
+def verify_unique_token(token, secret_key, max_age):
+    print(f'running verify_unique_token(token, max_age=max_token_age_seconds)... starting')
+    from models import User
+    print(f'running verify_unique_token(token, max_age=max_token_age_seconds)... user is: { User }')
+    s = Serializer(secret_key, salt='reset-salt')
+    print(f'running verify_unique_token(token, max_age=max_token_age_seconds):... s from Serializer is: { s }')
+    try:
+        data = s.loads(token, max_age=max_age)
+        print(f'running verify_unique_token(token, max_age=max_token_age_seconds):... data is: { data }')
+        user = data['id']
+        print(f'running verify_unique_token(token, max_age=max_token_age_seconds):... data[id] is: { data["id"] }')
+        return user
+    except Exception as e:
+        print(f'running verify_unique_token(token, max_age=max_token_age_seconds):... error is: { e }')
+        return None

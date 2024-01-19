@@ -14,6 +14,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Make the functions globally accessible
     // password_change
+    // password_reset_request
+    window.jsEnablePasswordResetRequestSubmitButton = jsEnablePasswordResetRequestSubmitButton;
+    // password_reset_request_new
+    window.jsEnablePasswordResetRequestNewSubmitButton = jsEnablePasswordResetRequestNewSubmitButton;
     // profile
     window.jsShowHiddenNameField = jsShowHiddenNameField;
     window.jsShowHiddenUsernameField = jsShowHiddenUsernameField; 
@@ -26,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // javascript for /password_change ------------------------------------------------------
     if (window.location.href.includes('/password_change')) {
-        console.log("Running myFinance50.js for /profile... ");
+        console.log("Running myFinance50.js for /password_change... ");
 
         // Pulls in elements if they exist on page and assigns them to variables
         var email = document.getElementById('email');
@@ -60,11 +64,54 @@ document.addEventListener('DOMContentLoaded', function() {
                 jsEnablePasswordChangeSubmitButton();
             });
         }
-
-
     }
     // javascript for /password_change ------------------------------------------------------
+
+
+    // javascript for /password_request_reset------------------------------------------------
+    if (window.location.pathname === '/password_reset_request') {
+        console.log("Running myFinance50.js for /password_reset_request... ");
+
+        // Pulls in elements if they exist on page and assigns them to variables
+        var email = document.getElementById('email')
+
+        // Run functions if given elements are present on the page
+        if (email) {
+            document.getElementById('email').addEventListener('input', function() {
+                jsEnablePasswordResetRequestSubmitButton();
+            });
+        }
+    }
+
+    // /javascript for /password_request_reset------------------------------------------------
+
     
+    // javascript for /password_request_reset_new------------------------------------------------
+    if (window.location.href.includes('/password_reset_request_new')) {
+        console.log("Running myFinance50.js for /password_reset_request_new... ");
+
+        // Pulls in elements if they exist on page and assigns them to variables
+        var password = document.getElementById('password')
+        var password_confirmation = document.getElementById('password_confirmation')
+
+        // Run functions if given elements are present on the page
+        if (password) {
+            document.getElementById('password').addEventListener('input', function() {
+                jsPasswordValidation();
+                jsEnablePasswordResetRequestNewSubmitButton();
+            });
+        }
+
+        if (password_confirmation) {
+            document.getElementById('password_confirmation').addEventListener('input', function() {
+                jsPasswordConfirmationValidation();
+                jsEnablePasswordResetRequestNewSubmitButton();
+            });
+        }
+    }
+    // /javascript for /password_request_reset_new------------------------------------------------
+
+        
     // javascript for /profile --------------------------------------------------------------
     if (window.location.href.includes('/profile')) {
         console.log("Running myFinance50.js for /profile... ");
@@ -203,8 +250,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
-
-
     // Function description: When box is clicked, input boxes for username appears.
     function jsShowHiddenUsernameField() {
         /* Pull in the relevant elements from the html */
@@ -233,7 +278,6 @@ document.addEventListener('DOMContentLoaded', function() {
             updateButtonUsername.classList.add('btn-secondary');
         }
     }
-
 
 
     // Function description: Real-time feedback re availability of username.
@@ -292,7 +336,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
-
     // Function description: Provides real-time feedback to user re availability of username.
     function jsEmailValidation() {
         return new Promise((resolve, reject) => {
@@ -347,6 +390,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
 
     // Function description: Provides real-time feedback to user whether input meets PW requirements.
     function jsPasswordValidation() {
@@ -436,16 +480,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
-
-
     // Function description: Provides real-time feedback to user if password == password_confirmation.
     function jsPasswordConfirmationValidation() {
         return new Promise((resolve, reject) => {
             var password = document.getElementById('password').value.trim();
             var password_confirmation = document.getElementById('password_confirmation').value.trim();
             var password_confirmation_validation_match = document.getElementById('password_confirmation_validation_match') 
-            console.log(`Running jsPasswordValidation()`)
-            console.log(`running jsPasswordValidation()... CSRF Token is: ${csrfToken}`);
+            console.log(`Running jsPasswordConfirmationValidation()`)
+            console.log(`running jsPasswordConfirmationValidation()... CSRF Token is: ${csrfToken}`);
             
             // Helper function: resets color of element to black
             function resetColor(elements) {
@@ -503,6 +545,76 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    
+    // Function description: Enables and shows submit button provided the user has
+    // updated all of the input fields and that input is.
+    function jsEnablePasswordResetRequestSubmitButton() {
+        var email = document.getElementById('email').value.trim();
+        var submitButton = document.getElementById('submit_button');
+
+        console.log(`Running jsEnablePasswordResetRequestSubmitButton()`)
+        console.log(`Running jsEnablePasswordResetRequestSubmitButton()... CSRF Token is: ${csrfToken}`);
+        
+        if (email === "" ) {
+            submitButton.disabled = true;
+            console.log(`Running jsEnablePasswordResetRequestSubmitButton()... Submit button disabled.`);
+        } else {
+            // All validations passed
+            console.log(`Running jsEnablePasswordResetRequestSubmitButton()... All validation checks passed, enabling submit button.`);
+            submitButton.disabled = false;
+        }
+    }
+
+
+    // Function description: Enables and shows submit button provided the user has
+    // updated all of the input fields and that input is.
+    async function jsEnablePasswordResetRequestNewSubmitButton() {
+        var password = document.getElementById('password').value.trim();
+        var password_confirmation = document.getElementById('password_confirmation').value.trim();
+        var submitButton = document.getElementById('submit_button');
+
+        // Create an array of promises with labels
+        var labeledPromises = [
+            { label: 'Password Check', promise: jsPasswordValidation() },
+            { label: 'Password Confirmation Check', promise: jsPasswordConfirmationValidation() }
+        ];
+        console.log(`Running jsEnablePasswordResetRequestNewSubmitButton()`)
+        console.log(`Running jsEnablePasswordResetRequestNewSubmitButton()... CSRF Token is: ${csrfToken}`);
+
+        Promise.all(labeledPromises.map(labeledPromise => {
+            // Add a console.log statement before each promise
+            //console.log(`Running jsEnablePasswordResetRequestNewSubmitButton()... Executing promise: ${labeledPromise.label}`);
+    
+            return labeledPromise.promise.then(result => {
+                // Add a console.log statement after each promise resolves
+                console.log(`Running jsEnablePasswordResetRequestNewSubmitButton()... Promise (${labeledPromise.label}) resolved with result: ${result}`);
+                return { label: labeledPromise.label, result: result };
+            });
+        }))
+            .then((results) => {
+                // Log each promise result
+                results.forEach(res => {
+                    console.log(`Result of ${res.label}: ${res.result}`);
+                });
+    
+                // Check if any of the promises return false
+                var allPromisesPassed = results.every(res => res.result === true);
+                
+                if (!allPromisesPassed) {
+                    submitButton.disabled = true;
+                    console.log(`Running jsEnablePasswordResetRequestNewSubmitButton()... Submit button disabled.`);
+                } else {
+                    // All validations passed
+                    console.log(`Running jsEnablePasswordResetRequestNewSubmitButton()... All validation checks passed, enabling submit button.`);
+                    submitButton.disabled = false;
+                }
+            }).catch((error) => {
+                // Handle errors if any of the Promises reject
+                console.error(`Running jsEnablePasswordResetRequestNewSubmitButton()... Error is: ${error}.`);
+                submitButton.disabled = true;
+            });
+    }
+
 
     // Function description: Enables and shows submit button provided the user has
     // updated all of the input fields and that input is.
@@ -516,16 +628,16 @@ document.addEventListener('DOMContentLoaded', function() {
             { label: 'Password Check', promise: jsPasswordValidation() },
             { label: 'Password Confirmation Check', promise: jsPasswordConfirmationValidation() }
         ];
-        console.log(`Running jsEnableRegisterSubmitButton()`)
-        console.log(`Running jsEnableRegisterSubmitButton()... CSRF Token is: ${csrfToken}`);
+        console.log(`Running jsEnablePasswordChangeSubmitButton()`)
+        console.log(`Running jsEnablePasswordChangeSubmitButton()... CSRF Token is: ${csrfToken}`);
 
         Promise.all(labeledPromises.map(labeledPromise => {
             // Add a console.log statement before each promise
-            //console.log(`Running jsEnableRegisterSubmitButton()... Executing promise: ${labeledPromise.label}`);
+            //console.log(`Running jsEnablePasswordChangeSubmitButton()... Executing promise: ${labeledPromise.label}`);
     
             return labeledPromise.promise.then(result => {
                 // Add a console.log statement after each promise resolves
-                console.log(`Running jsEnableRegisterSubmitButton()... Promise (${labeledPromise.label}) resolved with result: ${result}`);
+                console.log(`Running jsEnablePasswordChangeSubmitButton()... Promise (${labeledPromise.label}) resolved with result: ${result}`);
                 return { label: labeledPromise.label, result: result };
             });
         }))
@@ -540,19 +652,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (!allPromisesPassed || email === '' || password_old === "" ) {
                     submitButton.disabled = true;
-                    console.log(`Running jsEnableRegisterSubmitButton()... Submit button disabled.`);
+                    console.log(`Running jsEnablePasswordChangeSubmitButton()... Submit button disabled.`);
                 } else {
                     // All validations passed
-                    console.log(`Running jsEnableRegisterSubmitButton()... All validation checks passed, enabling submit button.`);
+                    console.log(`Running jsEnablePasswordChangeSubmitButton()... All validation checks passed, enabling submit button.`);
                     submitButton.disabled = false;
                 }
             }).catch((error) => {
                 // Handle errors if any of the Promises reject
-                console.error(`Running jsEnableRegisterSubmitButton()... Error is: ${error}.`);
+                console.error(`Running jsEnablePasswordChangeSubmitButton()... Error is: ${error}.`);
                 submitButton.disabled = true;
             });
     }
-
 
 
     // Function description: Enables and shows submit button provided the user has

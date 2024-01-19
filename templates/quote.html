@@ -23,7 +23,16 @@
         </div>
         <!-- /symbol -->
 
-        {{ form.submit_button(class='btn btn-primary', id='submit_button') }}
+        <!-- cancel and submit buttons-->
+        <div class='row' style='margin-top: 20px; margin-bottom: 10px;'>
+            <div class='col-sm-6 col-md-4 col-lg-3'>
+                <a href="{{ url_for('index') }}" class='btn btn-secondary w-100'>Back</a>
+            </div>
+            <div class='col-sm-6 col-md-4 col-lg-3'>
+                {{ form.submit_button(class='btn btn-success w-100', id='submit_button', disabled=True) }}
+            </div>
+        </div>
+        <!-- /cancel and submit buttons-->
     
     </form>
 {% endblock %}

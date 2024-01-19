@@ -23,7 +23,7 @@ class DevelopmentConfig:
     PORT = int(os.getenv('PORT', 5000))
 
     # Pull in secret key from .env
-    SECRET_KEY = os.getenv('FLASK_SECRET_KEY') or 'default-dev-secret-key'
+    SECRET_KEY = os.getenv('FLASK_SECRET_KEY')
 
     # Content Security Policy for Talisman
     CONTENT_SECURITY_POLICY = {
@@ -52,21 +52,13 @@ class DevelopmentConfig:
     LOG_TO_FILE = True
     LOG_FILE_PATH = 'app.log'
 
-
-    """
-    # Email server configuration for development
-    MAIL_SERVER = "smtp.gmail.com"
-    MAIL_PORT = 587
+    # Email server configuration
+    MAIL_SERVER = os.environ.get('MAIL_SERVER')
+    MAIL_PORT = os.environ.get('MAIL_PORT')
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     MAIL_USE_TLS = True
     MAIL_USE_SSL = False
-
-    # Get the port number from the PORT environment variable (default is 10000)
-    PORT = int(os.getenv('PORT', 5000))
-
-    # Token settings
-    MAX_TOKEN_AGE_SECONDS = 900
     
     # Content Security Policy for Talisman
     CONTENT_SECURITY_POLICY = {
@@ -89,4 +81,4 @@ class DevelopmentConfig:
         ],
         'report-uri': '/csp-violation-report'
     }
-    """
+    

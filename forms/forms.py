@@ -31,6 +31,15 @@ class PasswordChangeForm(FlaskForm):
     password_confirmation = PasswordField('New password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.')], render_kw={'required': True})
     submit_button = SubmitField('Submit')
 
+class PasswordResetRequestForm(FlaskForm):
+    email = EmailField('Email address:', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator], render_kw={'autofocus': True, 'required': True, 'type': 'email'})
+    submit_button = SubmitField('Submit')
+
+class PasswordResetRequestNewForm(FlaskForm):
+    password = PasswordField('New password:', filters=[strip_filter], validators=[DataRequired(), pw_strength_validator], render_kw={'autofocus': True, 'required': True})
+    password_confirmation = PasswordField('New password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.')], render_kw={'required': True})
+    submit_button = SubmitField('Submit')
+
 class ProfileForm(FlaskForm):
     name_full = StringField('Name:', render_kw={'readonly': True})
     name_first = StringField('Updated first name:', filters=[strip_filter], validators=[Optional(), allowed_chars_validator])

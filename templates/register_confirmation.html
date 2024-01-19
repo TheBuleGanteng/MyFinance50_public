@@ -1,0 +1,15 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+    Confirm registration
+{% endblock %}
+
+{% block main %}
+<!-- Instructional text -->
+<!-- Instructional text -->
+<div class="container-fluid ps-0 mb-1">
+    <div class="container-fluid container-instructions-start-bold">
+        Thank you for confirming your registration. If you are not automatically redirected to your account, please click <a href="{{ url_for('login') }}">here</a> to login.
+    </div>
+</div><!-- /Instructional text -->
+{% endblock %}
