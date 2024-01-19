@@ -71,6 +71,7 @@ select.mySelect option {
   text-align: start;
   margin-top: 10px;
   /*margin-bottom: 20px; */
+  margin-left: 0px; /* CUSTOMIZATION - ADDED */
   padding: 0px !important;
   color: var(--bs-red); /* CUSTOMIZATION - ADDED */
   font-size: smaller; /* CUSTOMIZATION - ADDED */
@@ -79,6 +80,7 @@ select.mySelect option {
 
 .container-instructions-start-bold {
   font-weight: bold;
+  margin-left: 0px !important; /* CUSTOMIZATION - ADDED */
   padding: 0px !important;
   text-align: start;
   margin-bottom: 30px; /* CUSTOMIZATION - ADDED */

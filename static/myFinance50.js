@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Make the functions globally accessible
+    // password_change
     // profile
     window.jsShowHiddenNameField = jsShowHiddenNameField;
     window.jsShowHiddenUsernameField = jsShowHiddenUsernameField; 
@@ -22,6 +23,48 @@ document.addEventListener('DOMContentLoaded', function() {
     window.jsPasswordConfirmationValidation = jsPasswordConfirmationValidation;
     window.jsEnableRegisterSubmitButton = jsEnableRegisterSubmitButton;
 
+    
+    // javascript for /password_change ------------------------------------------------------
+    if (window.location.href.includes('/password_change')) {
+        console.log("Running myFinance50.js for /profile... ");
+
+        // Pulls in elements if they exist on page and assigns them to variables
+        var email = document.getElementById('email');
+        var password_old = document.getElementById('password_old');
+        var password = document.getElementById('password');
+        var password_confirmation = document.getElementById('password_confirmation');
+
+        // Lists the functions to run if the given elements are on the page
+        if (email) {
+            document.getElementById('email').addEventListener('input', function() {
+                jsEnablePasswordChangeSubmitButton();
+            });
+        }
+
+        if (password_old) {
+            document.getElementById('password_old').addEventListener('input', function() {
+                jsEnablePasswordChangeSubmitButton();
+            });
+        }
+
+        if (password) {
+            document.getElementById('password').addEventListener('input', function() {
+                jsPasswordValidation();
+                jsEnablePasswordChangeSubmitButton();
+            });
+        }
+
+        if (password_confirmation) {
+            document.getElementById('password_confirmation').addEventListener('input', function() {
+                jsPasswordConfirmationValidation();
+                jsEnablePasswordChangeSubmitButton();
+            });
+        }
+
+
+    }
+    // javascript for /password_change ------------------------------------------------------
+    
     // javascript for /profile --------------------------------------------------------------
     if (window.location.href.includes('/profile')) {
         console.log("Running myFinance50.js for /profile... ");
@@ -66,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 jsEnableProfileSubmitButton();
             });
         }
-    } 
+    }
     // /javascript for /profile --------------------------------------------------------------
 
 
@@ -112,14 +155,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (password) {
             document.getElementById('password').addEventListener('input', function() {
-                jsPasswordValidation(); 
+                jsPasswordValidation();
                 jsEnableRegisterSubmitButton();
             });
         }
 
         if (password_confirmation) {
             document.getElementById('password_confirmation').addEventListener('input', function() {
-                jsPasswordConfirmationValidation(); 
+                jsPasswordConfirmationValidation();
                 jsEnableRegisterSubmitButton();
             });
         }
@@ -445,7 +488,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 let submit_enabled = true;
-                if (data.confirmation_match) {
+                if (data.confirmation_match == true) {
                     setColor(password_confirmation_validation_match);
                 } else {
                     resetColor(password_confirmation_validation_match);
@@ -458,6 +501,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 reject(error);
             });
         });
+    }
+
+
+    // Function description: Enables and shows submit button provided the user has
+    // updated all of the input fields and that input is.
+    async function jsEnablePasswordChangeSubmitButton() {
+        var email = document.getElementById('email').value.trim();
+        var password_old = document.getElementById('password_old').value.trim();
+        var submitButton = document.getElementById('submit_button');
+
+        // Create an array of promises with labels
+        var labeledPromises = [
+            { label: 'Password Check', promise: jsPasswordValidation() },
+            { label: 'Password Confirmation Check', promise: jsPasswordConfirmationValidation() }
+        ];
+        console.log(`Running jsEnableRegisterSubmitButton()`)
+        console.log(`Running jsEnableRegisterSubmitButton()... CSRF Token is: ${csrfToken}`);
+
+        Promise.all(labeledPromises.map(labeledPromise => {
+            // Add a console.log statement before each promise
+            //console.log(`Running jsEnableRegisterSubmitButton()... Executing promise: ${labeledPromise.label}`);
+    
+            return labeledPromise.promise.then(result => {
+                // Add a console.log statement after each promise resolves
+                console.log(`Running jsEnableRegisterSubmitButton()... Promise (${labeledPromise.label}) resolved with result: ${result}`);
+                return { label: labeledPromise.label, result: result };
+            });
+        }))
+            .then((results) => {
+                // Log each promise result
+                results.forEach(res => {
+                    console.log(`Result of ${res.label}: ${res.result}`);
+                });
+    
+                // Check if any of the promises return false
+                var allPromisesPassed = results.every(res => res.result === true);
+                
+                if (!allPromisesPassed || email === '' || password_old === "" ) {
+                    submitButton.disabled = true;
+                    console.log(`Running jsEnableRegisterSubmitButton()... Submit button disabled.`);
+                } else {
+                    // All validations passed
+                    console.log(`Running jsEnableRegisterSubmitButton()... All validation checks passed, enabling submit button.`);
+                    submitButton.disabled = false;
+                }
+            }).catch((error) => {
+                // Handle errors if any of the Promises reject
+                console.error(`Running jsEnableRegisterSubmitButton()... Error is: ${error}.`);
+                submitButton.disabled = true;
+            });
     }
 
 

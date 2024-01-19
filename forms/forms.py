@@ -25,10 +25,10 @@ class BuyForm(FlaskForm):
     submit_button = SubmitField('Register')
 
 class PasswordChangeForm(FlaskForm):
-    email = EmailField('Email address', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator], render_kw={'required': True, 'type': 'email'})
-    password = PasswordField('Password', filters=[strip_filter], validators=[DataRequired()])
-    password_new = PasswordField('New password', filters=[strip_filter], validators=[DataRequired(), pw_strength_validator, not_equal_to_validator('password')])
-    password_new_confirmation = PasswordField('New password confirmation', filters=[strip_filter], validators=[DataRequired(), EqualTo('password_new', message='New password confirmation must match the new password.')], render_kw={'required': True})
+    email = EmailField('Email address:', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator], render_kw={'required': True, 'type': 'email'})
+    password_old = PasswordField('Current password:', filters=[strip_filter], validators=[DataRequired()])
+    password = PasswordField('New password:', filters=[strip_filter], validators=[DataRequired(), pw_strength_validator, not_equal_to_validator('password_old')])
+    password_confirmation = PasswordField('New password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.')], render_kw={'required': True})
     submit_button = SubmitField('Submit')
 
 class ProfileForm(FlaskForm):

@@ -710,13 +710,13 @@ def create_app(config_name=None):
                     user = db.session.query(User).filter_by(email = form.email.data).scalar()
                     print(f'running /password_change ... User object retrieved from DB via user-provided email is: { user }')
                     # Step 1.1.1.1 If user-entered email and password don't match, flash error and render password_change.html
-                    if not check_password_hash(user.hash, form.password.data):
+                    if not check_password_hash(user.hash, form.password_old.data):
                         print(f'running /password_change ... Error 1.1.1.1 (email + password mismatch) user entered email of: { form.email.data } does not correspond with the password entered.')
                         flash('Error: invalid entry for email address and/or current password. Please check your input and try again.')
                         return render_template('password_change.html', form=form)
                     
                     # Step 1.1.1.2: Hash the new password and update the DB.
-                    user.hash = generate_password_hash(form.password_new.data)
+                    user.hash = generate_password_hash(form.password.data)
                     db.session.commit()
                     print(f'running /password_change ... updated user.hash in DB.')
 
@@ -746,10 +746,7 @@ def create_app(config_name=None):
         else:
             print(f'Running /password_change ... user arrived via GET')
             return render_template('password_change.html', form=form)
-            """response = make_response(render_template('login.html', form=form nonce=nonce))
-            print(f'response.headers is: {response.headers}')
-            return response"""                
-
+            
 # ---------------------------------------------------------------------------------
 
     @app.route("/sell", methods=["GET", "POST"])
