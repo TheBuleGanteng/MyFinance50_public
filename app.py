@@ -263,10 +263,12 @@ def create_app(config_name=None):
 # -----------------------------------------------------------------------
     
     @app.route('/check_email_registered', methods=['GET', 'POST'])
+    
     def check_email_registered_route():
         user_input = request.form.get('user_input') if request.method == 'POST' else request.args.get('user_input')
         return check_email_registered(user_input, False)
 
+    # Returns True if user input is a registered email address.
     def check_email_registered(user_input, is_internal_call=False):
         user = db.session.query(User).filter_by(email=user_input).scalar()
         if user:
@@ -279,6 +281,7 @@ def create_app(config_name=None):
 # -----------------------------------------------------------------------
 
     @app.route('/check_valid_symbol', methods=['POST'])
+    
     # Function returns True if user entry is a valid symbol
     def check_valid_symbol(user_input):
         print(f'running /check_valid_symbol... user_input is: { user_input }')    
@@ -333,6 +336,7 @@ def create_app(config_name=None):
         user_input = request.form.get('user_input') if request.method == 'POST' else request.args.get('user_input')
         return check_username_registered(user_input, False)
 
+    # Returns True if user input is a registered username.
     def check_username_registered(user_input, is_internal_call=False):
         user = db.session.query(User).filter_by(username=user_input).scalar()
         if user:
@@ -549,12 +553,13 @@ def create_app(config_name=None):
                     print(f'running /password_reset_request ... token generated')
 
                     # Step 2.1.1.2: Formulate email
+                    token_age_max_minutes = int(int(app.config['MAX_TOKEN_AGE_SECONDS']) / 60)
                     username = user.username
                     sender = 'info@mattmcdonnell.net'
                     recipients = [user.email]
                     subject = 'Password reset from MyFinance50'
                     url = url_for('password_reset_request_new', token=token, _external=True)
-                    body = f'''Dear { username }: to reset your password, please visit the following link: { url }
+                    body = f'''Dear { username }: to reset your password, please visit the following link within the next { token_age_max_minutes } minutes: { url }
 
     If you did not make this request, you may ignore it.
 
@@ -597,44 +602,45 @@ def create_app(config_name=None):
             
 # ---------------------------------------------------------------------------------
     
-    @app.route("/password_reset_request_new/<token>", methods=["GET", "POST"])
+    @app.route('/password_reset_request_new/<token>', methods=['GET', 'POST'])
     def password_reset_request_new(token):
         print(f'running /password_reset_request_new... route started ')
         print(f'running /password_reset_request_new... database URL is: { os.path.abspath("finance.sqlite") }')
         print(f'running /password_reset_request_new ... CSRF token is: { session.get("csrf_token", None) }')
+        
         # Step 1: Take the token and decode it
         decoded_token = unquote(token)
         user = verify_unique_token(decoded_token, app.config['SECRET_KEY'], int(os.getenv('MAX_TOKEN_AGE_SECONDS')))
         
         # Step 2: If token is invalid, flash error msg and redirect user to login
         if not user:
-            print(f'Running /password_reset_request_new route... no user found.')
+            print(f'Running /password_reset_request_new ... no user found.')
             session['temp_flash'] = 'Error: Invalid or expired reset link. Please login or re-request your password reset.'    
             return redirect(url_for('login'))
         
-        # Step 2: If token is valid, set user.id to user['user_id'] property from token
+        # Step 3: If token is valid, set user.id to user['user_id'] property from token
         user = user
-        print(f'Running /pw_reset_new route... user is: { user }.')
+        print(f'Running /pw_reset_new ... user is: { user }.')
 
         form = PasswordResetRequestNewForm()
         
-        # Step 3: Handle submission via post
+        # Step 4: Handle submission via post
         if request.method == 'POST':
         
-            # Step 3.1: Handle submission via post + user input clears form validation
+            # Step 4.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
                 print(f'running /password_reset_request_new ... User submitted via post and user input passed form validation')
 
-                # Step 3.1.1: Pull in the user inputs from form
+                # Step 4.1.1: Pull in the user inputs from form
                 user = db.session.query(User).filter_by(id = user).scalar()
                 print(f'running /password_reset_request_new ... user object extracted from token is: { user }')
                 print(f'running /password_reset_request_new ... user.hash is: { user.hash }')
                 print(f'running /password_reset_request_new ... form.password.data is: { form.password.data }')
 
                 try:                    
-                    # Step 1.1.1.1: Check to ensure new password does not match existing password
+                    # Step 4.1.1.1: Check to ensure new password does not match existing password
                     if check_password_hash(user.hash, form.password.data):
-                        print(f'running /password_reset_request_new ... Error 1.1.1.1 (new password matches existing). Flashing error and rendering password_reset_request_new.html')
+                        print(f'running /password_reset_request_new ... Error 4.1.1.1 (new password matches existing). Flashing error and rendering password_reset_request_new.html')
                         flash('Error: new password cannot match old password. Please try again.')
                         return render_template('password_reset_request_new.html', 
                                 token=token,
@@ -645,28 +651,28 @@ def create_app(config_name=None):
                                 pw_req_symbol=pw_req_symbol,
                                 user_input_allowed_symbols=user_input_allowed_symbols)    
                     
-                    # Step 1.1.1.2: Update DB with new password
+                    # Step 4.1.1.2: Update DB with new password
                     user.hash = generate_password_hash(form.password.data)
                     db.session.commit()
                     print(f'running /password_reset_request_new ... password reset for user { user } entered into DB')
 
-                    # Step 1.1.1.3: Flash success message and redirect user to index
+                    # Step 4.1.1.3: Flash success message and redirect user to index
                     print(f'running /password_reset_request_new ... completed route for { user }. Flashing success message and redirecting to /index')
                     session['temp_flash'] = 'Password reset successful!'
                     time.sleep(1)
                     return redirect(url_for('index'))
                 
-                # Step 1.1.2: If can't update password (likely due to no user object resulting from
+                # Step 4.1.2: If can't update password (likely due to no user object resulting from
                 # use of an invalid token) flash error msg and redirect to login.
                 except Exception as e:
-                    print(f'running /password_reset_request_new ...  Error 1.1.2 (unable to update DB) Flashing error msg and redirecting to /login')
+                    print(f'running /password_reset_request_new ...  Error 4.1.2 (unable to update DB) Flashing error msg and redirecting to /login')
                     session['temp_flash'] = 'Error: Invalid token. Please login or repeat your password reset request via the link below.'
                     time.sleep(1)
                     return redirect(url_for('login'))
             
-            # Step 1.2: Handle submission via post + user input fails form validation
+            # Step 4.2: Handle submission via post + user input fails form validation
             else:
-                print(f'Running /password_reset_request_new ... Error 1.2 (form validation errors), flashing message and redirecting user to /password_change')    
+                print(f'Running /password_reset_request_new ... Error 4.2 (form validation errors), flashing message and redirecting user to /password_change')    
                 for field, errors in form.errors.items():
                     print(f"Running /password_reset_request_new ... erroring field is: {field}")
                     for error in errors:
@@ -681,7 +687,7 @@ def create_app(config_name=None):
                                 pw_req_symbol=pw_req_symbol,
                                 user_input_allowed_symbols=user_input_allowed_symbols)
         
-        # Step 2: User arrived via GET
+        # Step 5: User arrived via GET
         else:
             print(f'Running /password_reset_request_new ... user arrived via GET')
             return render_template('password_reset_request_new.html', 
@@ -723,7 +729,7 @@ def create_app(config_name=None):
                 # Step 2.1.1: Pull in data from form
                 try:
                     # Step 2.1.1.1: Check if (a) there is user entry for username and if so, (b) whether it represents an already-taken username.
-                    if form.username.data and check_username_registered(form.username.data) == True:
+                    if check_username_registered(form.username.data) == True:
                         print(f'running /profile ... Error 2.1.1.1 (username already registered). User input for username: { form.username.data } is already registered. Flash error and render profile.html')
                         flash(f'Error: Username: { form.username.data } is already registered. Please try another username.')
                         return render_template('profile.html', form=form )
@@ -863,17 +869,17 @@ def create_app(config_name=None):
                 username = form.username.data
                 email = form.email.data
                 password = form.password.data
-                print(f'running /register... user-submitted name_first is: { name_first }')
-                print(f'running /register... user-submitted name_last is: { name_last }')
-                print(f'running /register... user-submitted email is: { email }')
+
+                try:
+                    print(f'running /register... user-submitted name_first is: { name_first }')
+                    print(f'running /register... user-submitted name_last is: { name_last }')
+                    print(f'running /register... user-submitted username is: { username }')
+                    print(f'running /register... user-submitted email address is: { email }')
             
-                # Step 2.1.2: Ensure username and email address are not already registered
-                if check_email_registered(email) == False:
-                    if check_username_registered(username) == False:
-                        pass
-                    else:
-                        print(f'Running /register ... Error 2.1.2   (username already registered), flashing message and redirecting user to /register')
-                        session['temp_flash'] = 'Error: Username is unavailable. Please select another username.'
+                    # Step 2.1.1.1: Ensure username and email address are not already registered
+                    if check_email_registered(email) == True or check_username_registered(username) == True:
+                        print(f'Running /register ... Error 2.1.1.1   (email and/or username already registered), flashing message and redirecting user to /register')
+                        session['temp_flash'] = 'Error: Email address and/or username is unavailable. If you already have an account, please log in. Otherwise, please amend your entries.'
                         time.sleep(1)
                         return render_template(
                             'register.html',
@@ -884,66 +890,149 @@ def create_app(config_name=None):
                             pw_req_symbol=pw_req_symbol,
                             user_input_allowed_symbols=user_input_allowed_symbols
                             )
-                else:
-                    print(f'Running /register ... Error 2.1.2 (email address already registered), flashing message and redirecting user to /login')
-                    session['temp_flash'] = 'Error: Email address is already registered. Please login or reset your password.'
+                       
+                    # Step 2.1.1.2: Input data to DB.
+                    new_user = User(
+                        name_first = name_first,
+                        name_last = name_last,
+                        email = email,
+                        username = username, 
+                        hash = generate_password_hash(password))
+                    db.session.add(new_user)
+                    db.session.commit()
+                    print(f'running /register ... new_user added to DB w/ unconfirmed=0')
+
+                    # Step 2.1.1.3: Query new user object from DB to get id.
+                    user = db.session.query(User).filter_by(email = email).scalar()
+
+                    # Step 2.1.1.3: Generate token
+                    token = generate_unique_token(user.id, app.config['SECRET_KEY'])
+                    print(f'running /register ... token generated')
+                    print(f'running /register ... int(os.getenv(MAX_TOKEN_AGE_SECONDS) is: { int(os.getenv("MAX_TOKEN_AGE_SECONDS")) }')
+
+                    # Step 2.1.1.4: Formulate email
+                    token_age_max_minutes = int(int(os.getenv('MAX_TOKEN_AGE_SECONDS'))/60)
+                    username = user.username
+                    sender = 'info@mattmcdonnell.net'
+                    recipients = [user.email]
+                    subject = 'Confirm you registration with MyFinance50'
+                    url = url_for('register_confirmation', token=token, _external=True)
+                    body = f'''Dear { user.username }: to confirm your registration with MyFinance50, please visit the following link within the next { token_age_max_minutes } minutes: { url }
+
+    If you did not make this request, you may ignore it.
+
+    Thank you,
+    Team MyFinance50'''
+
+                    # Step 2.1.1.5: Send email.
+                    msg = Message(subject=subject, body=body, sender=sender, recipients=recipients)
+                    mail.send(msg)
+                    print(f'Running /register... reset email sent to email address: { user.email }.')
+
+                    # Step 2.1.1.6: Flash success msg redirect to login.
+                    print(f'running /register ...  successfully registered user, redirecting to /login ')
+                    session['temp_flash'] = 'To confirm your registration and log in, please follow the instructions sent to you by email. Please do not forget to check your spam folder!'
+                    time.sleep(1)
                     return redirect(url_for('login'))
+                
+                # Step 2.1.2: If user entry symbol or shares is invalid, flash error and render sell.html
+                except Exception as e:
+                    print(f'running /register ...  Error 3.1.2 (unable to register user in DB and send email): {e}. Flashing error msg and rendering register.html ')
+                    session['temp_flash'] = 'Error: Unable to send email. Please ensure you are using a valid email address.'
+                    time.sleep(1)
+                    return render_template(
+                        'register.html',
+                        form=form,
+                        pw_req_length=pw_req_length,
+                        pw_req_letter=pw_req_letter,
+                        pw_req_num=pw_req_num,
+                        pw_req_symbol=pw_req_symbol,
+                        user_input_allowed_symbols=user_input_allowed_symbols
+                        )
 
-                # Step 2.1.3: Input data to DB.
-                new_user = User(
-                    name_first = name_first,
-                    name_last = name_last,
-                    email = email,
-                    username = username, 
-                    hash = generate_password_hash(password))
-                db.session.add(new_user)
-                db.session.commit()
-
-                # Step 2.1.4: Set session equal to user.id
-                session['user'] = db.session.query(User.id).filter_by(username = username).scalar()
-                # Step 2.1.3: Flash flash success message and redirect to /buy
-                print(f'running /register ...  successfully registered user, redirecting to /buy ')
-                flash("Registration processed successfully!", 200)
-                time.sleep(1)
-                return redirect(url_for('buy'))
-
-            # Step 2.2: Handle submission via post + user input clears form validation
+            # Step 2.2: Handle submission via post + user input fails form validation
             else:
                 print(f'Running /register ... Error 2.2 (form validation errors), flashing message and redirecting user to /register')    
                 for field, errors in form.errors.items():
                     print(f"Running /register ... erroring field is: {field}")
                     for error in errors:
                         print(f"Running /register ... erroring on this field is: {error}")
-                    
                 session['temp_flash'] = 'Error: Invalid input. Please see the red text below for assistance.'
                 return render_template(
-                            'register.html',
-                            form=form,
-                            pw_req_length=pw_req_length,
-                            pw_req_letter=pw_req_letter,
-                            pw_req_num=pw_req_num,
-                            pw_req_symbol=pw_req_symbol,
-                            user_input_allowed_symbols=user_input_allowed_symbols
-                            )
+                        'register.html',
+                        form=form,
+                        pw_req_length=pw_req_length,
+                        pw_req_letter=pw_req_letter,
+                        pw_req_num=pw_req_num,
+                        pw_req_symbol=pw_req_symbol,
+                        user_input_allowed_symbols=user_input_allowed_symbols
+                        )
 
         # Step 3: User arrived via GET
         else:
             print(f'Running /register ... user arrived via GET')
             return render_template(
-                            'register.html',
-                            form=form,
-                            pw_req_length=pw_req_length,
-                            pw_req_letter=pw_req_letter,
-                            pw_req_num=pw_req_num,
-                            pw_req_symbol=pw_req_symbol,
-                            user_input_allowed_symbols=user_input_allowed_symbols
-                            )
-            """response = make_response(render_template('login.html', form=form nonce=nonce))
-            print(f'response.headers is: {response.headers}')
-            return response"""
+                        'register.html',
+                        form=form,
+                        pw_req_length=pw_req_length,
+                        pw_req_letter=pw_req_letter,
+                        pw_req_num=pw_req_num,
+                        pw_req_symbol=pw_req_symbol,
+                        user_input_allowed_symbols=user_input_allowed_symbols
+                        )
              
 # --------------------------------------------------------------------------------
-    
+
+    @app.route('/register_confirmation/<token>', methods=['GET', 'POST'])
+    def register_confirmation(token):
+        print(f'running /register_confirmation ...  starting /register_confirmation ')
+        print(f'running /register_confirmation... database URL is: { os.path.abspath("finance.sqlite") }')
+        print(f'running /register_confirmation ... CSRF token is: { session.get("csrf_token", None) }')
+        
+        try:
+            # Step 1: Take the token and decode it
+            decoded_token = unquote(token)
+            user = verify_unique_token(decoded_token, app.config['SECRET_KEY'], int(os.getenv('MAX_TOKEN_AGE_SECONDS')))
+        
+            # Step 2: If token is invalid, flash error msg and redirect user to register
+            if not user:
+                print(f'Running /register_confirmation ... no user found.')
+                session['temp_flash'] = 'Error: Invalid or expired confirmation link. Please login or re-request your password reset.'    
+                return redirect(url_for('register'))
+        
+            # Step 3: If token is valid, pull user object from DB
+            user = db.session.query(User).filter_by(id = user).scalar()
+            print(f'Running /register_confirmation ... user object is: { user }.')
+            print(f'Running /register_confirmation ... user.confirmed is: { user.confirmed }.')
+
+            # Step 4: If user is already confirmed, flash error and redirect to login
+            if user.confirmed == 0:
+                user.confirmed = 1
+                db.session.commit()
+                print(f'Running /register_confirmation ... updated user: { user } to confirmed.')
+            else:
+                print(f'Running /register_confirmation ... Error 4 (user already confirmed). Flashing msg and redirecting to login.')
+                session['temp_flash'] = 'Error: This account is already confirmed. Please log in.'
+                time.sleep(1)
+                return redirect(url_for('login'))
+            
+
+            # Step 5: Flash success message and return to index
+            session['user'] = user.id
+            print(f'Running /register_confirmation ... successfully updated confirmed for user object: { user } to: 1.')
+            flash('Your registration is confirmed. Welcome to MyFinance50!')
+            time.sleep(1)
+            return redirect(url_for('index'))
+
+        # Step 6: If token is invalid or DB update fails, flask error message and redirect to reset.html
+        except Exception as e:
+                print(f'running /register_confirmation ...  Error 3.1.2 (unable to register user in DB and send email): {e}. Flashing error msg and rendering register.html ')
+                session['temp_flash'] = 'Error: Unable to send email. Please ensure you are using a valid email address.'
+                time.sleep(1)
+                return redirect(url_for('register'))
+                        
+# -------------------------------------------------------------------------------
+
     @app.route("/sell", methods=["GET", "POST"])
     @login_required
     def sell():
@@ -1039,10 +1128,6 @@ def create_app(config_name=None):
         else:
             print(f'Running /sell ... user arrived via GET')
             return render_template('sell.html', form=form, symbols = symbols)
-
-            """response = make_response(render_template('login.html', form=form nonce=nonce))
-            print(f'response.headers is: {response.headers}')
-            return response"""
 
 # -------------------------------------------------------------------------------------
 

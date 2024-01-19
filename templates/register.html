@@ -45,7 +45,7 @@
             {{ form.name_last.label(class='form-label-start-req-bold') }}
         </div>
         <div class='col-sm-8 col-md-6 col-lg-4'>
-            {{ form.name_last(class='form-control', id='name_last', autocomplete='off', autofocus=True, placeholder='First name') }}
+            {{ form.name_last(class='form-control', id='name_last', autocomplete='off', autofocus=True, placeholder='Last name') }}
             {% if form.name_last.errors %}
                 <div class='text-danger mt-2'>
                     {% for error in form.name_last.errors %}
@@ -63,7 +63,7 @@
             {{ form.username.label(class='form-label-start-req-bold') }}
         </div>
         <div class='col-sm-8 col-md-6 col-lg-4'>
-            {{ form.username(class='form-control', id='username', autocomplete='off', autofocus=True, placeholder='First name') }}
+            {{ form.username(class='form-control', id='username', autocomplete='off', autofocus=True, placeholder='Username') }}
             {% if form.username.errors %}
                 <div class='text-danger mt-2'>
                     {% for error in form.username.errors %}
@@ -92,7 +92,7 @@
             {{ form.email.label(class='form-label-start-req-bold') }}
         </div>
         <div class='col-sm-8 col-md-6 col-lg-4'>
-            {{ form.email(class='form-control', id='email', autocomplete='off', autofocus=True, placeholder='First name') }}
+            {{ form.email(class='form-control', id='email', autocomplete='off', autofocus=True, placeholder='Email address') }}
             {% if form.email.errors %}
                 <div class='text-danger mt-2'>
                     {% for error in form.email.errors %}
@@ -121,7 +121,7 @@
             {{ form.password.label(class='form-label-start-req-bold') }}
         </div>
         <div class='col-sm-8 col-md-6 col-lg-4'>
-            {{ form.password(class='form-control', id='password', autocomplete='off', autofocus=True, placeholder='First name') }}
+            {{ form.password(class='form-control', id='password', autocomplete='off', autofocus=True, placeholder='Password') }}
             {% if form.password.errors %}
                 <div class='text-danger mt-2'>
                     {% for error in form.password.errors %}
@@ -157,7 +157,7 @@
             {{ form.password_confirmation.label(class='form-label-start-req-bold') }}
         </div>
         <div class='col-sm-8 col-md-6 col-lg-4'>
-            {{ form.password_confirmation(class='form-control', id='password_confirmation', autocomplete='off', autofocus=True, placeholder='First name') }}
+            {{ form.password_confirmation(class='form-control', id='password_confirmation', autocomplete='off', autofocus=True, placeholder='Password confirmation') }}
             {% if form.password_confirmation.errors %}
                 <div class='text-danger mt-2'>
                     {% for error in form.password_confirmation.errors %}

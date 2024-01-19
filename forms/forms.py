@@ -10,15 +10,6 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', filters=[strip_filter], validators=[DataRequired()])
     submit_button = SubmitField('Log In')
 
-class RegisterForm(FlaskForm):
-    name_first = StringField('First name:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'autofocus': True})
-    name_last = StringField('Last name:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator])
-    email = EmailField('Email address:', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator], render_kw={'required': True, 'type': 'email'})
-    username = StringField('Username:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
-    password = PasswordField('Password:', filters=[strip_filter], validators=[DataRequired(), pw_strength_validator])
-    password_confirmation = PasswordField('Password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.')], render_kw={'required': True})
-    submit_button = SubmitField('Register')
-
 class BuyForm(FlaskForm):
     symbol = StringField('Stock symbol', filters=[strip_filter, uppercase_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
     shares = IntegerField('Number of shares', validators=[DataRequired(), is_positive_validator], render_kw={'required': True})
@@ -48,11 +39,22 @@ class ProfileForm(FlaskForm):
     username = StringField('Updated username:', filters=[strip_filter], validators=[Optional(), allowed_chars_validator])
     email = EmailField('Email address:', render_kw={'readonly': True}) 
     created = DateField('Registered since:', format='%Y-%m-%d', render_kw={'readonly': True})
+    accounting_method = SelectField('Accounting method:', validators=[Optional()], choices=[FIFO, LIFO], coerce=str)
+    tax_rate_LTCG = DecimalField('Tax rate, long-term capital gains:', validators=[Optional()], )
     submit_button = SubmitField('Submit')
 
 class QuoteForm(FlaskForm):
     symbol = StringField('Stock symbol', filters=[strip_filter, uppercase_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
     submit_button = SubmitField('Submit')
+
+class RegisterForm(FlaskForm):
+    name_first = StringField('First name:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'autofocus': True})
+    name_last = StringField('Last name:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator])
+    email = EmailField('Email address:', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator], render_kw={'required': True, 'type': 'email'})
+    username = StringField('Username:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
+    password = PasswordField('Password:', filters=[strip_filter], validators=[DataRequired(), pw_strength_validator])
+    password_confirmation = PasswordField('Password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.')], render_kw={'required': True})
+    submit_button = SubmitField('Register')
 
 class SellForm(FlaskForm):
     symbol = SelectField('Choose a stock to sell', validators=[DataRequired()], choices=[], coerce=str)
