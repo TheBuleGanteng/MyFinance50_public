@@ -27,24 +27,27 @@ class DevelopmentConfig:
 
     # Content Security Policy for Talisman
     CONTENT_SECURITY_POLICY = {
-        'default-src': [
-            '\'self\'',
-            'https://cdn.jsdelivr.net',
-        ],
-        'script-src': [
-            '\'self\'',
-            'https://cdn.jsdelivr.net',
-        ],
-        'style-src': [
-            '\'self\'',
-            'https://cdn.jsdelivr.net',
-            '\'unsafe-inline\'',
-        ],
-        'img-src': [
-            "'self'",
-            "data:",  # Allows data URIs for images
-        ],
-        'report-uri': '/csp-violation-report'
+    'default-src': [
+        '\'self\'',
+        'https://cdn.jsdelivr.net',
+        'https://cdnjs.cloudflare.com',
+    ],
+    'script-src': [
+        '\'self\'',
+        'https://cdn.jsdelivr.net',
+        'https://code.jquery.com/',
+    ],
+    'style-src': [
+        '\'self\'',
+        'https://cdn.jsdelivr.net',  # Allow styles from cdn.jsdelivr.net
+        'https://cdnjs.cloudflare.com',  # Allow styles from cloudflare CDN (for Font Awesome)
+        '\'unsafe-inline\'',
+    ],
+    'img-src': [
+        "'self'",
+        "data:",  # Allows data URIs for images
+    ],
+    'report-uri': '/csp-violation-report'
     }
 
     # Logging configurations
@@ -58,27 +61,4 @@ class DevelopmentConfig:
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     MAIL_USE_TLS = True
-    MAIL_USE_SSL = False
-    
-    # Content Security Policy for Talisman
-    CONTENT_SECURITY_POLICY = {
-        'default-src': [
-            '\'self\'',
-            'https://cdn.jsdelivr.net',
-        ],
-        'script-src': [
-            '\'self\'',
-            'https://cdn.jsdelivr.net',
-        ],
-        'style-src': [
-            '\'self\'',
-            'https://cdn.jsdelivr.net',
-            '\'unsafe-inline\'',
-        ],
-        'img-src': [
-            "'self'",
-            "data:",  # Allows data URIs for images
-        ],
-        'report-uri': '/csp-violation-report'
-    }
-    
+    MAIL_USE_SSL = False   

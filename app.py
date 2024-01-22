@@ -417,15 +417,23 @@ def create_app(config_name=None):
                 
                 # Step 2.1.2: Validate that user-submitted password is correct
                 if not check_password_hash(user.hash, form.password.data):
-                    print(f'running /login... error 2.1.2, flashing message and redirecting user to /login')
+                    print(f'running /login... error 2.1.2 (invalid password), flashing message and redirecting user to /login')
                     session['temp_flash'] = 'Error: Invalid username and/or password. If you have not yet registered, please click the link below. If you have recently requested a password reset, check your email inbox and spam folders.'
-                    return render_template('login.html', form=form)
+                    time.sleep(1)
+                    return redirect('/login')
 
-                # Step 2.1.3: Remember which user has logged in
+                # Step 2.1.3: Validate that user account is confirmed
+                if user.confirmed != 'Yes':
+                    print(f'running /login... error 2.1.3 (user.confirmed != yes), flashing message and redirecting user to /login')
+                    session['temp_flash'] = 'Error: This account has not yet been confirmed. Please check your email inbox and spam folder for email instructions regarding how to confirm your registration. You may re-register below, if needed.'
+                    time.sleep(1)
+                    return redirect('/login')
+
+                # Step 2.1.4: Remember which user has logged in
                 session['user'] = user.id
                 print(f'running /login... session[user_id] is: { session["user"] }')
 
-                # Step 2.1.4: Redirect user to home page
+                # Step 2.1.5: Redirect user to home page
                 print(f'running /login... redirecting to /index.  User is: { session }')
                 print(f'running /login ... session.get(user) is: { session.get("user") }')
                 return redirect(url_for('index'))
@@ -713,12 +721,7 @@ def create_app(config_name=None):
 
         # Step 1: Pull user object based on session[user].
         user = db.session.query(User).filter_by(id = session.get('user')).scalar()
-        name_full = user.name_first+" "+user.name_last
-        form.name_full.data = name_full
-        form.username_old.data = user.username
-        form.email.data = user.email
-        form.created.data = user.created
-        
+
         # Step 2: Handle submission via post
         if request.method == 'POST':
 
@@ -729,7 +732,7 @@ def create_app(config_name=None):
                 # Step 2.1.1: Pull in data from form
                 try:
                     # Step 2.1.1.1: Check if (a) there is user entry for username and if so, (b) whether it represents an already-taken username.
-                    if check_username_registered(form.username.data) == True:
+                    if form.username.data and check_username_registered(form.username.data) == True:
                         print(f'running /profile ... Error 2.1.1.1 (username already registered). User input for username: { form.username.data } is already registered. Flash error and render profile.html')
                         flash(f'Error: Username: { form.username.data } is already registered. Please try another username.')
                         return render_template('profile.html', form=form )
@@ -744,15 +747,36 @@ def create_app(config_name=None):
                     if form.username.data:
                         user.username = form.username.data
                         print(f'running /profile ... user.name_first updated to: { form.name_first.data }')
+                    if form.accounting_method.data != user.accounting_method:
+                        user.accounting_method = form.accounting_method.data
+                        print(f'running /profile ... user.accounting_method updated to: { form.accounting_method.data }')
+                    if form.tax_loss_offsets.data != user.tax_loss_offsets:
+                        user.tax_loss_offsets = form.tax_loss_offsets.data
+                        print(f'running /profile ... user.tax_loss_offsets updated to: { form.tax_loss_offsets.data }')
+                    if form.tax_rate_STCG.data != user.tax_rate_STCG:
+                        user.tax_rate_STCG = form.tax_rate_STCG.data
+                        print(f'running /profile ... user.tax_rate_STCG updated to: { form.tax_rate_STCG.data }')
+                    if form.tax_rate_LTCG.data != user.tax_rate_LTCG:
+                        user.tax_rate_LTCG = form.tax_rate_LTCG.data
+                        print(f'running /profile ... user.tax_rate_LTCG updated to: { form.tax_rate_LTCG.data }')
                     db.session.commit()
+                    print(f'running /profile ... successfully updated database')
 
                     # Step 2.1.1.3: Query DB to get updated data
-                    user = db.session.query(User).filter_by(id = session.get('user')).scalar()
+                    user = db.session.query(User).filter_by(id=session.get('user')).scalar()
+                    print(f'running /profile ... refreshed user object for user: { user }')
                     name_full = user.name_first+" "+user.name_last
                     form.name_full.data = name_full
                     form.username_old.data = user.username
                     form.email.data = user.email
                     form.created.data = user.created
+                    form.accounting_method.data = user.accounting_method
+                    form.tax_loss_offsets.data = user.tax_loss_offsets
+                    
+                    form.tax_rate_STCG.data = user.tax_rate_STCG
+                    print(f'running /profile ... new value for user.tax_rate_STCG is: { user.tax_rate_STCG }')
+                    
+                    form.tax_rate_LTCG.data = user.tax_rate_LTCG
                     
                     # Step 2.1.1.4: Flash success message and render profile.html
                     print(f'running /profile ... DB successfully updated with user changes. Flashing success message and rendering profile.html')
@@ -778,11 +802,23 @@ def create_app(config_name=None):
         
         # Step 2: User arrived via GET
         else:
+            name_full = user.name_first+" "+user.name_last
+            form.name_full.data = name_full
+            form.username_old.data = user.username
+            form.email.data = user.email
+            form.created.data = user.created
+            form.accounting_method.data = user.accounting_method
+            form.tax_loss_offsets.data = user.tax_loss_offsets
+            form.tax_rate_STCG.data = user.tax_rate_STCG
+            form.tax_rate_LTCG.data = user.tax_rate_LTCG
+            print(f'running /password_change ... on loading page, tax_rate_STCG is: { user.tax_rate_STCG } ')
+            #print(f'running /password_change ... on loading page, tax_rate_STCG_value is: { form.tax_rate_STCG_value.data } ')
+            print(f'running /password_change ... on loading page, tax_rate_LTCG is: { user.tax_rate_LTCG } ')
+            #print(f'running /password_change ... on loading page, tax_rate_LTCG_value is: { form.tax_rate_LTCG_value.data } ')
+
+                
             print(f'Running /profile ... user arrived via GET')
             return render_template('profile.html', form=form)
-            """response = make_response(render_template('login.html', form=form nonce=nonce))
-            print(f'response.headers is: {response.headers}')
-            return response"""                
 
 # --------------------------------------------------------------------------
 
@@ -869,12 +905,21 @@ def create_app(config_name=None):
                 username = form.username.data
                 email = form.email.data
                 password = form.password.data
+                accounting_method = form.accounting_method.data
+                tax_loss_offsets = form.tax_loss_offsets.data
+                tax_rate_STCG = form.tax_rate_STCG.data
+                tax_rate_LTCG = form.tax_rate_LTCG.data
 
                 try:
                     print(f'running /register... user-submitted name_first is: { name_first }')
                     print(f'running /register... user-submitted name_last is: { name_last }')
                     print(f'running /register... user-submitted username is: { username }')
                     print(f'running /register... user-submitted email address is: { email }')
+                    print(f'running /register... user-submitted accounting_method is: { accounting_method }')
+                    print(f'running /register... user-submitted tax_loss_offsets is: { tax_loss_offsets }')
+                    print(f'running /register... user-submitted tax_rate_STCG is: { tax_rate_STCG }')
+                    print(f'running /register... user-submitted tax_rate_LTCG is: { tax_rate_LTCG }')
+                    
             
                     # Step 2.1.1.1: Ensure username and email address are not already registered
                     if check_email_registered(email) == True or check_username_registered(username) == True:
@@ -897,7 +942,11 @@ def create_app(config_name=None):
                         name_last = name_last,
                         email = email,
                         username = username, 
-                        hash = generate_password_hash(password))
+                        hash = generate_password_hash(password),
+                        accounting_method = accounting_method,
+                        tax_loss_offsets = tax_loss_offsets,
+                        tax_rate_STCG = tax_rate_STCG,
+                        tax_rate_LTCG = tax_rate_LTCG)
                     db.session.add(new_user)
                     db.session.commit()
                     print(f'running /register ... new_user added to DB w/ unconfirmed=0')
@@ -1006,8 +1055,8 @@ def create_app(config_name=None):
             print(f'Running /register_confirmation ... user.confirmed is: { user.confirmed }.')
 
             # Step 4: If user is already confirmed, flash error and redirect to login
-            if user.confirmed == 0:
-                user.confirmed = 1
+            if user.confirmed == 'No':
+                user.confirmed = 'Yes'
                 db.session.commit()
                 print(f'Running /register_confirmation ... updated user: { user } to confirmed.')
             else:

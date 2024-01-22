@@ -21,6 +21,14 @@
 <form action='/register' method='post'>
     {{ form.hidden_tag() }}
 
+    <!-- section header: Personal info -->
+    <div class="container-fluid ps-0 mb-0">
+        <div class='container-fluid container-instructions-start-bold mb-0 mt-4' style='font-style: italic'>
+            Personal information
+        </div>
+        <hr>
+    <!-- /section header: Personal info -->
+
     <!-- name_first -->
     <div class='user_input_registration row'>
         <div class='col-sm-2' style='align-self: flex-start; text-align: start'>
@@ -180,6 +188,105 @@
         </div>
     </div>
     <!-- /password_confirmation -->
+
+    <!-- section header: Accounting and tax info -->
+    <div class='container-fluid ps-0 mb-1'>
+        <div class='container-fluid container-instructions-start-bold mb-0 mt-4' style='font-style: italic'>
+            Accounting and tax information
+        </div>
+        <hr>
+    <!-- /section header: Accounting and tax info -->
+
+    <!-- section header: Accounting and tax info -->
+    <div class='container-fluid ps-0 mb-1'>
+        <div class='container-fluid container-instructions-start-bold mb-0 mt-4' style='font-style: italic'>
+            Accounting and tax information
+        </div>
+        <hr>
+    </div>
+    <!-- /section header: Accounting and tax info -->
+
+    <!-- accounting_method -->
+    <div class='user_input_registration row'>        
+        {{ form.accounting_method.label(class='col-sm-2 form-label-start-bold') }}
+        <div class='col-sm-8 col-md-6 col-lg-4'>
+            {{ form.accounting_method(class='form-control', id='accounting_method') }}
+        </div>
+        <div class='col-sm-2 mt-2'>
+            <i class="fas fa-question-circle ml-2" data-toggle="tooltip" title='"FIFO" (first-in, first-out) means that when someone sells a given amount of shares in a company, the oldest shares are assumed to be the first sold. This is the policy followed by most tax authorities.'></i>
+        <div>
+        </div>
+            {% if form.accounting_method.errors %}
+                <div class='text-danger'>
+                    {% for error in form.accounting_method.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <!-- /accounting_method -->
+
+    <!-- tax_loss_offsets -->
+    <div class='user_input_registration row'>        
+        {{ form.tax_loss_offsets.label(class='col-sm-2 form-label-start-bold') }}
+        <div class='col-sm-8 col-md-6 col-lg-4'>
+            {{ form.tax_loss_offsets(class='form-control', id='tax_loss_offsets') }}
+        </div>
+        <div class='col-sm-2 mt-2'>
+            <i class="fas fa-question-circle ml-2" data-toggle="tooltip" title='"On" means that within a given year when taxes are calculated, losses on share sales offset gains on share sales. Followed by most tax authorities.'></i>
+        <div>
+            {% if form.tax_loss_offsets.errors %}
+                <div class='text-danger'>
+                    {% for error in form.tax_loss_offsets.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <!-- /tax_loss_offsets -->
+
+    <!-- tax_rate_STCG -->
+    <div class='user_input_registration row'>
+        {{ form.tax_rate_STCG.label(class='col-sm-2 form-label-start-bold') }}
+        <div class='col-sm-8 col-md-6 col-lg-4'>
+            <span id='tax_rate_STCG_value'>
+                {{ "%.2f%%"|format(form.tax_rate_STCG.data or form.tax_rate_STCG.default) }}
+            </span>
+            {{ form.tax_rate_STCG }}
+            {{ form.tax_rate_STCG_hidden(id='tax_rate_STCG_hidden') }}
+            <i class="fas fa-question-circle ml-2" data-toggle="tooltip" title='The tax applied to profits on share sales when the holding period was < 365 days.'></i>
+            {% if form.tax_rate_STCG.errors %}
+                <div class='text-danger'>
+                    {% for error in form.tax_rate_STCG.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    <!-- /tax_rate_STCG --> 
+    
+    <!-- tax_rate_LTCG -->
+    <div class='user_input_registration row'>
+        {{ form.tax_rate_LTCG.label(class='col-sm-2 form-label-start-bold') }}
+        <div class='col-sm-8 col-md-6 col-lg-4'>
+            <input type="hidden" name="tax_rate_STCG__value_hidden" id="tax_rate_STCG_value_hidden" value="">
+            <span id='tax_rate_LTCG_value'>
+                {{ "%.2f%%"|format(form.tax_rate_LTCG.data or form.tax_rate_LTCG.default) }}
+            </span>
+            {{ form.tax_rate_LTCG }}
+            {{ form.tax_rate_LTCG_hidden(id='tax_rate_LTCG_hidden') }}
+            <i class="fas fa-question-circle ml-2" data-toggle="tooltip" title='The tax applied to profits on share sales when the holding period was => 365 days.'></i>
+            {% if form.tax_rate_LTCG.errors %}
+                <div class='text-danger'>
+                    {% for error in form.tax_rate_LTCG.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    <!-- /tax_rate_LTCG -->
 
     <!-- cancel and submit buttons-->
     <div class='row' style='margin-top: 20px; margin-bottom: 10px;'>

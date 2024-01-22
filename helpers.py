@@ -103,7 +103,6 @@ max_token_age_seconds = os.getenv('MAX_TOKEN_AGE_SECONDS')
 # Token generation for password reset and registration
 def generate_unique_token(id, secret_key):
     print(f'running generate_unique_token(id)... starting')
-    print(f'running generate_unique_token(id)... secret_key is: { secret_key }')
     s = Serializer(secret_key, salt='reset-salt')
     print(f'running generate_unique_token(id)... generated token')
     return s.dumps({'id': id})

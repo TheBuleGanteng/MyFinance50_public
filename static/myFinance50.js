@@ -15,19 +15,42 @@ document.addEventListener('DOMContentLoaded', function() {
     // Make the functions globally accessible
     // password_change
     // password_reset_request
-    window.jsEnablePasswordResetRequestSubmitButton = jsEnablePasswordResetRequestSubmitButton;
+    //window.jsEnablePasswordResetRequestSubmitButton = jsEnablePasswordResetRequestSubmitButton;
     // password_reset_request_new
-    window.jsEnablePasswordResetRequestNewSubmitButton = jsEnablePasswordResetRequestNewSubmitButton;
+    //window.jsEnablePasswordResetRequestNewSubmitButton = jsEnablePasswordResetRequestNewSubmitButton;
     // profile
     window.jsShowHiddenNameField = jsShowHiddenNameField;
     window.jsShowHiddenUsernameField = jsShowHiddenUsernameField; 
-    window.jsEnableProfileSubmitButton = jsEnableProfileSubmitButton;
+    window.updateTaxRateDisplaySTCG = updateTaxRateDisplaySTCG;
+    window.updateTaxRateDisplayLTCG = updateTaxRateDisplayLTCG;
+    //window.jsEnableProfileSubmitButton = jsEnableProfileSubmitButton;
+    
     // register
     window.jsPasswordValidation = jsPasswordConfirmationValidation
     window.jsPasswordConfirmationValidation = jsPasswordConfirmationValidation;
-    window.jsEnableRegisterSubmitButton = jsEnableRegisterSubmitButton;
+    //window.jsEnableRegisterSubmitButton = jsEnableRegisterSubmitButton;
 
+    // Make the following variables globally accessible 
+    let initial_accounting_method;
+    let initial_tax_loss_offsets;
+    let initial_tax_rate_STCG_value;
+    let initial_tax_rate_LTCG_value;
     
+    if (document.getElementById('accounting_method')) {        
+        initial_accounting_method = document.getElementById('accounting_method').value;
+    }
+    if (document.getElementById('tax_loss_offsets')) {        
+        initial_tax_loss_offsets = document.getElementById('tax_loss_offsets').value;
+    }
+    if (document.getElementById('tax_rate_STCG_value')) {
+        initial_tax_rate_STCG_value = parseFloat(document.getElementById('tax_rate_STCG_value').innerText.replace('%', ''));
+    } 
+    if (document.getElementById('tax_rate_LTCG_value')) {
+        initial_tax_rate_LTCG_value = parseFloat(document.getElementById('tax_rate_LTCG_value').innerText.replace('%', ''));
+    }
+
+
+
     // javascript for /password_change ------------------------------------------------------
     if (window.location.href.includes('/password_change')) {
         console.log("Running myFinance50.js for /password_change... ");
@@ -122,6 +145,25 @@ document.addEventListener('DOMContentLoaded', function() {
         var name_last = document.getElementById('name_last');
         var updateButtonUsername = document.getElementById('updateButtonUsername');
         var username = document.getElementById('username');
+        var accounting_method = document.getElementById('accounting_method');
+        var tax_loss_offsets = document.getElementById('tax_loss_offsets');
+        var tax_rate_STCG= document.getElementById('tax_rate_STCG');
+        var tax_rate_STCG_value = document.getElementById('tax_rate_STCG_value');
+        var tax_rate_LTCG= document.getElementById('tax_rate_LTCG');
+        var tax_rate_LTCG_value = document.getElementById("tax_rate_LTCG_value");
+        var profileForm = document.querySelector('form'); // Selects the only form on the page
+
+          // Capture the profile form submission
+          if (profileForm) {
+            profileForm.addEventListener('submit', function(event) {
+                var taxRateSTCGValue = parseFloat(document.getElementById('tax_rate_STCG_value').innerText.replace('%', '')).toFixed(2);
+                var hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'tax_rate_STCG'; // The name must match what you expect on the server side
+                hiddenInput.value = taxRateSTCGValue;
+                profileForm.appendChild(hiddenInput);
+            });
+        }
 
         // Lists the functions to run if the given elements are on the page
         if (updateButtonNameFull) {
@@ -156,6 +198,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 jsEnableProfileSubmitButton();
             });
         }
+
+            if (accounting_method) {
+                document.getElementById('accounting_method').addEventListener('input', function() { 
+                    jsEnableProfileSubmitButton();
+                });
+            }
+
+            if (tax_loss_offsets) {
+                document.getElementById('tax_loss_offsets').addEventListener('input', function() { 
+                    jsEnableProfileSubmitButton();
+                });
+            }
+
+        if (tax_rate_STCG) {
+            updateTaxRateDisplaySTCG(tax_rate_STCG, tax_rate_STCG_value);
+            tax_rate_STCG.addEventListener('input', function() {
+                updateTaxRateDisplaySTCG(tax_rate_STCG, tax_rate_STCG_value);
+                jsEnableProfileSubmitButton();
+            });
+        }
+
+        if (tax_rate_LTCG) {
+            updateTaxRateDisplayLTCG(tax_rate_STCG, tax_rate_STCG_value);
+            document.getElementById('tax_rate_LTCG').addEventListener('input', function() { 
+                updateTaxRateDisplayLTCG(tax_rate_LTCG, tax_rate_LTCG_value);
+                jsEnableProfileSubmitButton();
+            });
+        }
     }
     // /javascript for /profile --------------------------------------------------------------
 
@@ -171,7 +241,28 @@ document.addEventListener('DOMContentLoaded', function() {
         var email = document.getElementById('email');
         var password = document.getElementById('password');
         var password_confirmation = document.getElementById('password_confirmation');
+        var accounting_method = document.getElementById('accounting_method');
+        var tax_loss_offsets = document.getElementById('tax_loss_offsets');
+        var tax_rate_STCG= document.getElementById('tax_rate_STCG');
+        var tax_rate_STCG_value = document.getElementById('tax_rate_STCG_value');
+        var tax_rate_LTCG= document.getElementById('tax_rate_LTCG');
+        var tax_rate_LTCG_value = document.getElementById("tax_rate_LTCG_value");
+        var registerForm = document.querySelector('form'); // Selects the only form on the page
 
+        
+        //$('[data-toggle="tooltip"]').tooltip()
+
+        // Capture the profile form submission
+        if (registerForm) {
+            registerForm.addEventListener('submit', function(event) {
+                var taxRateSTCGValue = parseFloat(document.getElementById('tax_rate_STCG_value').innerText.replace('%', '')).toFixed(2);
+                var hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'tax_rate_STCG'; // The name must match what you expect on the server side
+                hiddenInput.value = taxRateSTCGValue;
+                registerForm.appendChild(hiddenInput);
+            });
+        }
 
         // Lists the functions to run if the given elements are on the page
         if (name_first) {
@@ -211,6 +302,19 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('password_confirmation').addEventListener('input', function() {
                 jsPasswordConfirmationValidation();
                 jsEnableRegisterSubmitButton();
+            });
+        }
+        if (tax_rate_STCG) {
+            updateTaxRateDisplaySTCG(tax_rate_STCG, tax_rate_STCG_value);
+            tax_rate_STCG.addEventListener('input', function() {
+                updateTaxRateDisplaySTCG(tax_rate_STCG, tax_rate_STCG_value);
+            });
+        }
+
+        if (tax_rate_LTCG) {
+            updateTaxRateDisplayLTCG(tax_rate_STCG, tax_rate_STCG_value);
+            document.getElementById('tax_rate_LTCG').addEventListener('input', function() { 
+                updateTaxRateDisplayLTCG(tax_rate_LTCG, tax_rate_LTCG_value);
             });
         }
     } 
@@ -545,6 +649,27 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Function description: Enables and shows submit button provided the user has
+    function updateTaxRateDisplaySTCG(slider, display) {
+        var hiddenInput = document.getElementById('tax_rate_STCG_hidden');
+        var newTaxRate = parseFloat(slider.value).toFixed(2);
+        display.innerHTML = newTaxRate + '%';
+        // Update the hidden field
+        if (hiddenInput) {
+            hiddenInput.value = newTaxRate;
+        }
+    }
+
+    // Function description: Enables and shows submit button provided the user has
+    function updateTaxRateDisplayLTCG(slider, display) {
+        var hiddenInput = document.getElementById('tax_rate_LTCG_hidden');
+        var newTaxRate = parseFloat(slider.value).toFixed(2);
+        display.innerHTML = newTaxRate + '%';
+        // Update the hidden field
+        if (hiddenInput) {
+            hiddenInput.value = newTaxRate;
+        }
+    }
     
     // Function description: Enables and shows submit button provided the user has
     // updated all of the input fields and that input is.
@@ -673,6 +798,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var name_last = document.getElementById('name_last').value.trim();
         var username = document.getElementById('username').value.trim();
         var username_validation = document.getElementById('username_validation');
+        var updated_accounting_method = document.getElementById('accounting_method').value;
+        var updated_tax_loss_offsets = document.getElementById('tax_loss_offsets').value;
+        var updated_tax_rate_STCG_value = parseFloat(document.getElementById('tax_rate_STCG_value').innerText.replace('%', ''));
+        var updated_tax_rate_LTCG_value = parseFloat(document.getElementById('tax_rate_LTCG_value').innerText.replace('%', ''));
                 
         if (username !== '') {
             await jsUsernameValidation();
@@ -690,11 +819,15 @@ document.addEventListener('DOMContentLoaded', function() {
             name_last,
             username,
             username_validation,
+            updated_accounting_method,
+            updated_tax_loss_offsets,
+            updated_tax_rate_STCG_value,
+            updated_tax_rate_LTCG_value,
         });
 
         // Logic: If any user input field != empty && username_validation passes, enable submit button
         if (
-            (name_first !== '' || name_last !== '' || username !== '' ) &&
+            (name_first !== '' || name_last !== '' || username !== '' || updated_accounting_method !== initial_accounting_method || updated_tax_loss_offsets !== initial_tax_loss_offsets || updated_tax_rate_STCG_value !== initial_tax_rate_STCG_value || updated_tax_rate_LTCG_value !== initial_tax_rate_LTCG_value || updated_tax_loss_offsets !== initial_tax_loss_offsets) &&
             username_validation !== 'Username unavailable'
         ) {
             submitButton.disabled = false;

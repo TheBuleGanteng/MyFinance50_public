@@ -4,6 +4,10 @@ from sqlalchemy import Column, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
+# Instructions for update:
+# Step 1: flask db migrate -m "XX MESSAGE HERE XX"
+# Step 2: flask db upgrade
+
 class User(db.Model):
     # Name of the table
     __tablename__ = 'users'
@@ -18,10 +22,14 @@ class User(db.Model):
     name_last = db.Column(db.String, nullable=True)
     username = db.Column(db.String, nullable=False, unique=True)
     email = db.Column(db.String, nullable=False, unique=True)
-    confirmed = db.Column(db.Integer, nullable=False, default = 0)
+    confirmed = db.Column(db.String, nullable=False, default = 'No')
     created = db.Column(db.DateTime, default=datetime.now)
     hash = db.Column(db.String, nullable=False)
     cash = db.Column(db.Float, default= 10000.00)
+    accounting_method = db.Column(db.String, nullable=False)
+    tax_loss_offsets = db.Column(db.String, nullable=False)
+    tax_rate_STCG = db.Column(db.Float, default=30.0, nullable=False)
+    tax_rate_LTCG = db.Column(db.Float, default=15.0, nullable=False)
 
     # Relationship to Transactions (if you need to access user's transactions)
     transactions = relationship("Transaction", backref="user")

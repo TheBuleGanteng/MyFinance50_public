@@ -218,6 +218,7 @@ select.mySelect option {
   align-items: center;
   display: flex;
   margin: 10px;
+  text-align: start;
 }
 
 

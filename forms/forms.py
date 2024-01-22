@@ -1,7 +1,7 @@
 from Custom_FlaskWtf_Filters_and_Validators.filters_generic import strip_filter, lowercase_filter, uppercase_filter
 from Custom_FlaskWtf_Filters_and_Validators.validators_generic import allowed_chars_validator, is_positive_validator, not_equal_to_validator, optional_if_date_validator, pw_strength_validator
 from flask_wtf import FlaskForm
-from wtforms import DateField, EmailField, IntegerField, PasswordField, SelectField, StringField, SubmitField, ValidationError
+from wtforms import DateField, DecimalRangeField, EmailField, HiddenField, IntegerField, PasswordField, SelectField, StringField, SubmitField, ValidationError
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, Regexp, StopValidation
 
 
@@ -39,8 +39,12 @@ class ProfileForm(FlaskForm):
     username = StringField('Updated username:', filters=[strip_filter], validators=[Optional(), allowed_chars_validator])
     email = EmailField('Email address:', render_kw={'readonly': True}) 
     created = DateField('Registered since:', format='%Y-%m-%d', render_kw={'readonly': True})
-    accounting_method = SelectField('Accounting method:', validators=[Optional()], choices=[FIFO, LIFO], coerce=str)
-    tax_rate_LTCG = DecimalField('Tax rate, long-term capital gains:', validators=[Optional()], )
+    accounting_method = SelectField('Accounting method:', validators=[Optional()], choices=[('FIFO', 'FIFO'), ('LIFO', 'LIFO')], coerce=str)
+    tax_loss_offsets = SelectField('Tax loss offsets:', validators=[Optional()], choices=[('On', 'On'), ('Off', 'Off')], coerce=str)
+    tax_rate_STCG = DecimalRangeField('Tax rate, short-term capital gains:', validators=[Optional()], default=30.00, render_kw={"min": 0, "max": 35, "step": 0.50})
+    tax_rate_STCG_hidden = HiddenField('Tax Rate STCG Hidden')
+    tax_rate_LTCG = DecimalRangeField('Tax rate, long-term capital gains:', validators=[Optional()], default=15.00, render_kw={"min": 0, "max": 35, "step": 0.50})
+    tax_rate_LTCG_hidden = HiddenField('Tax Rate LTCG Hidden')
     submit_button = SubmitField('Submit')
 
 class QuoteForm(FlaskForm):
@@ -54,6 +58,12 @@ class RegisterForm(FlaskForm):
     username = StringField('Username:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
     password = PasswordField('Password:', filters=[strip_filter], validators=[DataRequired(), pw_strength_validator])
     password_confirmation = PasswordField('Password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.')], render_kw={'required': True})
+    accounting_method = SelectField('Accounting method:', validators=[Optional()], choices=[('FIFO', 'FIFO'), ('LIFO', 'LIFO')], coerce=str)
+    tax_loss_offsets = SelectField('Tax loss offsets:', validators=[Optional()], choices=[('On', 'On'), ('Off', 'Off')], coerce=str)
+    tax_rate_STCG = DecimalRangeField('Tax rate, short-term capital gains:', validators=[Optional()], default=30.00, render_kw={"min": 0, "max": 35, "step": 0.50})
+    tax_rate_STCG_hidden = HiddenField('Tax Rate STCG Hidden')
+    tax_rate_LTCG = DecimalRangeField('Tax rate, long-term capital gains:', validators=[Optional()], default=15.00, render_kw={"min": 0, "max": 35, "step": 0.50})
+    tax_rate_LTCG_hidden = HiddenField('Tax Rate LTCG Hidden')
     submit_button = SubmitField('Register')
 
 class SellForm(FlaskForm):
