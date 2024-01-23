@@ -174,7 +174,7 @@ def create_app(config_name=None):
 
 # ---------------------------------------------------------------------
     
-    @app.route("/buy", methods=["GET", "POST"])
+    @app.route('/buy', methods=['GET', 'POST'])
     @login_required
     def buy():
         print(f'running /buy ...  starting /buy ')
@@ -189,51 +189,38 @@ def create_app(config_name=None):
 
             # Step 1.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
-                print(f'running /password_change ... User: { session["user"] } submitted via post and user input passed form validation')
-
+                print(f'running /buy ... user submitted via post and user input passed form validation')
+                user = db.session.query(User).filter_by(id= session['user']).scalar()
+                #print(f'running /buy ... retrieved user object from DB: { user }')
+                                
                 # Step 1.1.1: Pull in the user inputs from buy.html
                 symbol = form.symbol.data
                 shares = form.shares.data
+                transaction_type = 'buy'
                 print(f'running /buy ...  symbol is: { symbol } ')
                 print(f'running /buy ...  shares is: { shares } ')
 
-                # Step 1.1.2: Check if symbol is a valid ticker. If yes, store data in symbol_data.
-                if lookup(symbol):
-                    symbol_data = lookup(symbol)
-                else:
-                    print(f'running /buy ... user-entered symbol is not valid: { symbol }. Flashing message and returning user to /buy.')
-                    flash('Error: Invalid symbol')
-                    return render_template('buy.html', form=form)
+                # Step 1.1.2: Run check_valid_shares, which:
+                # (a) checks if symbol is valid and (b) checks that user has sufficient cash
+                result = check_valid_shares(symbol, shares, transaction_type)
 
-                # Step 1.1.3: Store the txn data
-                txn_price_per_share = symbol_data["price"]
-                txn_total_value = shares * txn_price_per_share
-                
-                # Step 1.1.4: Pull the user data (needed for cash balance)
-                try:
-                    user = db.session.query(User).filter_by(id = session.get('user')).scalar()
-                    if txn_total_value > user.cash:
-                        print(f'running /buy... Error 1.1.4 (insufficient cash) txn_total_value is: { txn_total_value } and user.cash is only: { user.cash }')
-                        flash('Error: Insufficient cash to complete transaction')
-                        return render_template('buy.html', form=form) 
-                    print(f'running /buy... txn_total_value is: { txn_total_value } and user.cash is: { user.cash }')
-                except ValueError as e:
-                    print(f'running /buy... Error 1.1.4 (user not found in DB). Redirecting to /login.')
-                    session['temp_flash'] = 'Error: Must log in.'
-                    return redirect(url_for('login'))
-                
+                # Step 1.1.3: Handle if check_valid_shares(symbol, shares) failed
+                if result['status'] == 'error':
+                    print(f'running /buy ...  error 1.1.3 (check_valid_shares failed): check_valid_shares resulted with status: { result["status"] } and message: {  result["message"] }. Test failed. ')
+                    flash(f'Error: { result["message"]} ')
+                                                             
                 # Step 1.1.5: Update database
                                 # Add new entry into the transaction table to represent the share purchase.
                 new_transaction = Transaction(
-                    user_id=user.id, 
-                    txn_type='BOT', 
-                    symbol=symbol, 
-                    txn_shrs=shares, 
-                    txn_shr_price=txn_price_per_share, 
-                    txn_value=txn_total_value
+                    user_id = user.id, 
+                    txn_type = 'BOT', 
+                    symbol = symbol, 
+                    txn_shrs = shares, 
+                    txn_shr_price = result['txn_shr_price'], 
+                    txn_value= result['txn_total_value']
                 )
                 db.session.add(new_transaction)
-                user.cash -= txn_total_value
+                user.cash = user.cash - result['txn_total_value']
                 db.session.commit()
 
                 # Step 1.1.6: Flash success message and redirect to /
@@ -256,9 +243,6 @@ def create_app(config_name=None):
         else:
             print(f'Running /buy ... user arrived via GET')
             return render_template('buy.html', form=form)
-            """response = make_response(render_template('login.html', form=form nonce=nonce))
-            print(f'response.headers is: {response.headers}')
-            return response"""
                 
 # -----------------------------------------------------------------------
     
@@ -280,16 +264,108 @@ def create_app(config_name=None):
 
 # -----------------------------------------------------------------------
 
-    @app.route('/check_valid_symbol', methods=['POST'])
+    @app.route('/check_valid_shares', methods=['GET', 'POST'])
     
-    # Function returns True if user entry is a valid symbol
-    def check_valid_symbol(user_input):
-        print(f'running /check_valid_symbol... user_input is: { user_input }')    
+    def check_valid_shares_route():
+        if request.method == 'POST':
+            user_input_symbol = request.form.get('user_input_symbol')
+            user_input_shares = request.form.get('user_input_shares')
+            transaction_type = request.form.get('transaction_type')
+            result = check_valid_shares(user_input_symbol, user_input_shares, transaction_type)
+            return jsonify(result)
+        else:
+            user_input_symbol = request.args.get('user_input_symbol')
+            user_input_shares = request.args.get('user_input_shares')
+            transaction_type = request.args.get('transaction_type')
+        
+        return check_valid_shares(user_input_symbol, user_input_shares, transaction_type, False)
+
+    # Returns a dict (status accessed via status = result['status']).
+    def check_valid_shares(user_input_symbol, user_input_shares, transaction_type):
+        #print(f'running /check_valid_shares... user_input_shares (part 1) is: { user_input_shares }')
+        print(f'running /check_valid_shares... transaction_type is: { transaction_type }')
+        
+        # Test 1: Ensure user_input_shares is a valid stock symbol
+        if lookup(user_input_symbol) is None:
+            #print(f'running /check_valid_shares... user entered the following invalid symbol { user_input_symbol }. Test failed.')
+            return {'status': 'error', 'message': 'Invalid stock symbol entered.'}
+        
+        # Test 2: Ensure user_input_shares is an integer (positive or negative)
+        try:
+            user_input_shares = int(user_input_shares)
+        except ValueError:
+            print(f'running /check_valid_shares... user entered a non-integer for shares. Test failed.')
+            return {'status': 'error', 'message': 'Non-integer value entered for shares.'}
+                
+        try:
+            # Step 3: Pull user object for signed-in user from DB
+            user = db.session.query(User).filter_by(id=session.get('user')).scalar()
+            #print(f'running /check_valid_shares... pulled user object: { user }')
+            #print(f'running /check_valid_shares... user_input_shares (part 2) is: { user_input_shares }')
+
+            symbol_data = lookup(user_input_symbol)
+            txn_price_per_share = symbol_data['price']
+            txn_total_value = user_input_shares * txn_price_per_share
+
+            # Step 3: Commence logic if user is buying shares (sufficient cash to complete purchase?)
+            if transaction_type == 'buy':
+                #print(f'running /check_valid_shares... user: {user} is trying to buy shares')
+                
+                # Step 3.1: Test if user has sufficient cash to cover the share purchase
+                if user.cash < txn_total_value:
+                    #print(f'running /check_valid_shares... user: {user} has insufficient cash to complete purchase. Test failed.')
+                    return {'status': 'error', 'message': f'Current cash balance of { usd(user.cash) } is insufficient to complete purchase costing { usd(txn_total_value) }.'}
+                
+                else:
+                    #print(f'running /check_valid_shares... user: {user} has sufficient cash. Test passed')
+                    return {'status': 'success', 'message': 'Sufficient cash to buy the shares.', 'symbol_data': symbol_data, 'txn_shr_price': txn_price_per_share, 'txn_total_value' : txn_total_value}
+            
+            # Step 4: Commence logic if user is selling shares (sufficient shares to complete sale?)
+            elif transaction_type == 'sell':
+                #print(f'running /check_valid_shares... user: {user} is trying to sell shares')
+                
+                # Step 4.1: Test if user has sufficient shares to sell
+                total_shares_owned = db.session.query(func.sum(Transaction.txn_shrs))\
+                    .filter(Transaction.user_id == session.get('user'), Transaction.symbol == user_input_symbol)\
+                    .scalar() or 0
+                #print(f'running /check_valid_shares ...  total shares of symbol: { user_input_symbol } is: { total_shares_owned } ')
+                
+                # Step 4.2: If user is trying to sell more shares than owned, test fails
+                if user_input_shares > total_shares_owned:
+                    #print(f'running /check_valid_shares... user: {user} entered more shares than owned: { total_shares_owned}. Test failed')
+                    return {'status': 'error', 'message': f'You cannot sell more than your current holdings of { total_shares_owned } shares.'}
+                
+                # Step 4.3: If user is trying to sell more shares than owned, test passes
+                else:
+                    #print(f'running /check_valid_shares... user: {user} has sufficient shares to sell. Test passed')
+                    return {'status': 'success', 'message': 'You have sufficient shares to sell.', 'symbol_data': symbol_data, 'txn_shr_price': txn_price_per_share, 'txn_total_value' : txn_total_value}
+            
+            # Step 5: Commence logic if the third argument passed to check_valid_shares function is neither buy nor sell (e.g. invalid input)
+            else:
+                print(f'running /check_valid_shares... invalid third argument of { transaction_type } passed to check_valid_shares. Must be buy or sell')
+                raise Exception 
+        
+        # Step 6: Handle exception 
+        except Exception as e:
+            print(f'running /check_valid_shares ...  Error 5 (unable to check for sufficient cash/shares) failing test')
+            return {'status': 'error', 'message': str(e)}
+
+# -----------------------------------------------------------------------
+
+    @app.route('/check_valid_symbol', methods=['GET', 'POST'])
+    
+    def check_valid_symbol_route():
+        user_input = request.form.get('user_input') if request.method == 'POST' else request.args.get('user_input')
+        return check_valid_symbol(user_input, False)
+
+    # Returns True if user input is a registered email address.
+    def check_valid_symbol(user_input, is_internal_call=False):
         if lookup(user_input) != None:
-            print(f'running /check_valid_symbol... user_input is a valid stock symbol: { user_input }')
+            #print(f'running /check_valid_symbol... user_input is a valid stock symbol: { user_input }')
             return lookup(user_input)
         else:
-            print(f'running /check_valid_symbol... user_input is not a valid stock symbol: { user_input }')
+            #print(f'running /check_email_registered... user_input is not a registered email: { user_input }')
+            return 'False' if not is_internal_call else None
         
 # -----------------------------------------------------------------------
 
@@ -1093,15 +1169,14 @@ def create_app(config_name=None):
         
         # Step 1: Populate the symbols dropdown in sell.html
         # Step 1.1: Call the list of stocks from the SQL database and convert to a list
-        symbols = db.session.query(Transaction.symbol).filter(Transaction.user_id == session['user']).distinct().order_by(Transaction.symbol).all()
-        symbols = [symbol[0] for symbol in symbols]
+        query_results = db.session.query(Transaction.symbol).filter(Transaction.user_id == session['user']).distinct().order_by(Transaction.symbol).all()
+        symbols = [(symbol[0], symbol[0]) for symbol in query_results]
         print(f'running /sell... symbols is: { symbols }')
         
         # Step 1.2: Pass the aforementioned list of symbols to sell.html
         print(f'running /sell ...  user arrived via GET, displaying page ')
-        form.symbol.choices = symbols
+        form.symbol.choices = [('', 'Select Symbol')] + symbols
 
-        
         # Step 2: Pull the user object, which will be used throughout the route
         user = db.session.query(User).filter_by(id = session['user']).scalar()
 
@@ -1110,42 +1185,36 @@ def create_app(config_name=None):
 
             # Step 3.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
-                print(f'running /password_change ... User: { session["user"] } submitted via post and user input passed form validation')
+                print(f'running /sell ... User: { session["user"] } submitted via post and user input passed form validation')
 
                 # Step 3.1.1: Pull in the user inputs from sell.html
                 try:
                     # Step 3.1.1.1: Pull data from form
                     symbol = form.symbol.data
                     shares = form.shares.data
-                    txn_shr_price = (lookup(symbol))['price']
-                    txn_value = -shares * txn_shr_price
-                    txn_shrs = shares * -1
+                    transaction_type = 'sell'
+                    print(f'running /sell ... shares is: { shares }')
 
                     # Step 3.1.1.2: Retrieve from DB the shares owned in the specified symbol
-                    total_shares_owned = db.session.query(func.sum(Transaction.txn_shrs))\
-                    .filter(Transaction.user_id == user.id, Transaction.symbol == symbol)\
-                    .scalar()
-                    print(f'running /sell ...  total shares of symbol: { symbol } is: { total_shares_owned } ')
-                    
-                    # Step 3.1.1.3: Check if user has enough shares to sell
-                    if shares > total_shares_owned:
-                        print(f'running /sell ...  Error 2.1.1.3 (insufficient shrs to sell): user requested to sell: { shares } shares, but user only owns: { total_shares_owned } in symbol: { symbol }')
-                        flash(f'Error 3.1.1.3: Shares sold ({ shares }) cannot exceed shares owned ({ total_shares_owned }).')
-                        return render_template('sell.html', form=form, symbols = symbols)
+                    result = check_valid_shares(symbol, shares, transaction_type)
+
+                    # Step 3.1.1.3: Handle if check_valid_shares(symbol, shares) failed
+                    if result['status'] == 'error':
+                        print(f'running /sell ...  error 1.1.3 (check_valid_shares failed): check_valid_shares resulted with status: { result["status"] } and message: {  result["message"] }. Test failed. ')
+                        flash(f'Error: { result["message"]} ')
 
                     # Step 3.1.1.4: Create entry for the transaction in the DB.
                     new_transaction = Transaction(
-                        user_id = session['user'],
+                        user_id = user.id,
                         txn_type = 'SLD',
                         symbol = symbol,
-                        txn_shrs = txn_shrs,
-                        txn_shr_price = txn_shr_price,
-                        txn_value = txn_value
+                        txn_shrs = -shares,
+                        txn_shr_price = result['txn_shr_price'], 
+                        txn_value= result['txn_total_value']
                     )
                     db.session.add(new_transaction)
-                    
                     print(f'running /sell ...  user.cash before deducting txn_value is: { user.cash } ')
-                    user.cash = user.cash - txn_value
+                    user.cash = user.cash + result['txn_total_value']
                     print(f'running /sell ...  user.cash after deducting txn_value is: { user.cash } ')        
                     
                     db.session.commit()
@@ -1159,7 +1228,7 @@ def create_app(config_name=None):
 
                 # Step 3.1.2: If user entry symbol or shares is invalid, flash error and render sell.html
                 except Exception as e:
-                    print(f'running /sell ...  Error 3.1.2 (invalid entry for symbol and/or shares and/or ): User entry for symbol and/or shares was invalid. Error is: {e}')
+                    print(f'running /sell ...  Error 3.1.2 (invalid entry for symbol and/or shares): { e }. User entry for symbol and/or shares was invalid. Error is: {e}')
                     flash(f'Error: Please enter a valid share symbol and positive number of shares not exceeding your current holdings.')
                     return render_template('sell.html', form=form, symbols = symbols)
             

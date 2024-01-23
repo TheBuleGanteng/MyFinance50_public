@@ -1,7 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM content loaded in myFinance50.js.');
     console.log('this is a console.log from myFinance50.js....myFinance50.js loaded successfully');
-
+    
+    // Security items -----------------------------------------------------------------------------------------
     // Global CSRF Token Variable
     let csrfToken = ''; 
     let csrfTokenInput = document.querySelector('input[name="csrf_token"]');
@@ -12,24 +13,26 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("CSRF token input not found.");
     }
 
-    // Make the functions globally accessible
+    
+    
+    // Declaration of global variables and functions------------------------------------------------------------
+    
+    // buy
+    window.jsSymbolValidation = jsSymbolValidation
+    window.jsSharesValidation = jsSharesValidation
     // password_change
     // password_reset_request
-    //window.jsEnablePasswordResetRequestSubmitButton = jsEnablePasswordResetRequestSubmitButton;
     // password_reset_request_new
-    //window.jsEnablePasswordResetRequestNewSubmitButton = jsEnablePasswordResetRequestNewSubmitButton;
     // profile
     window.jsShowHiddenNameField = jsShowHiddenNameField;
     window.jsShowHiddenUsernameField = jsShowHiddenUsernameField; 
-    window.updateTaxRateDisplaySTCG = updateTaxRateDisplaySTCG;
-    window.updateTaxRateDisplayLTCG = updateTaxRateDisplayLTCG;
-    //window.jsEnableProfileSubmitButton = jsEnableProfileSubmitButton;
+    window.jsUpdateTaxRateDisplaySTCG = jsUpdateTaxRateDisplaySTCG;
+    window.jsUpdateTaxRateDisplayLTCG = jsUpdateTaxRateDisplayLTCG;
     
     // register
     window.jsPasswordValidation = jsPasswordConfirmationValidation
     window.jsPasswordConfirmationValidation = jsPasswordConfirmationValidation;
-    //window.jsEnableRegisterSubmitButton = jsEnableRegisterSubmitButton;
-
+    
     // Make the following variables globally accessible 
     let initial_accounting_method;
     let initial_tax_loss_offsets;
@@ -51,7 +54,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-    // javascript for /password_change ------------------------------------------------------
+    // Determine sequence of JS functions for each page ------------------------------------------------------------
+
+    // javascript for /buy ------------------------------------------
+    if (window.location.href.includes('/buy')) {
+        console.log("Running myFinance50.js for /buy... ");
+        
+        var symbol = document.getElementById('symbol');
+        var shares = document.getElementById('shares');
+        
+        // Debounce function
+        function debounce(func, timeout = 300){
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { func.apply(this, args); }, timeout);
+            };
+        }
+
+        // Function that wraps jsSymbolValidation with debouncing
+        function debounceSymbolValidation() {
+            jsSymbolValidation().then(submit_enabled => {
+                jsEnableBuySubmitButton();
+            });
+        }
+
+        if (symbol) {
+            document.getElementById('symbol').addEventListener('input', debounce(debounceSymbolValidation, 500));
+        }
+        
+        if (shares) {
+            document.getElementById('shares').addEventListener('input', function() {
+                jsSharesValidation();
+                jsEnableBuySubmitButton();
+            });
+        }
+    }
+    
+    // /javascript for /buy ------------------------------------------
+
+
+    // javascript for /password_change ------------------------------------------
     if (window.location.href.includes('/password_change')) {
         console.log("Running myFinance50.js for /password_change... ");
 
@@ -88,10 +131,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    // javascript for /password_change ------------------------------------------------------
+    // javascript for /password_change ----------------------------------------
 
 
-    // javascript for /password_request_reset------------------------------------------------
+    // javascript for /password_request_reset----------------------------------
     if (window.location.pathname === '/password_reset_request') {
         console.log("Running myFinance50.js for /password_reset_request... ");
 
@@ -106,10 +149,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // /javascript for /password_request_reset------------------------------------------------
+    // /javascript for /password_request_reset---------------------------------
 
     
-    // javascript for /password_request_reset_new------------------------------------------------
+    // javascript for /password_request_reset_new------------------------------
     if (window.location.href.includes('/password_reset_request_new')) {
         console.log("Running myFinance50.js for /password_reset_request_new... ");
 
@@ -132,10 +175,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    // /javascript for /password_request_reset_new------------------------------------------------
+    // /javascript for /password_request_reset_new-----------------------------
 
         
-    // javascript for /profile --------------------------------------------------------------
+    // javascript for /profile ------------------------------------------------
     if (window.location.href.includes('/profile')) {
         console.log("Running myFinance50.js for /profile... ");
         
@@ -153,8 +196,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var tax_rate_LTCG_value = document.getElementById("tax_rate_LTCG_value");
         var profileForm = document.querySelector('form'); // Selects the only form on the page
 
-          // Capture the profile form submission
-          if (profileForm) {
+        // Capture the profile form submission
+        if (profileForm) {
             profileForm.addEventListener('submit', function(event) {
                 var taxRateSTCGValue = parseFloat(document.getElementById('tax_rate_STCG_value').innerText.replace('%', '')).toFixed(2);
                 var hiddenInput = document.createElement('input');
@@ -165,7 +208,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Lists the functions to run if the given elements are on the page
         if (updateButtonNameFull) {
             updateButtonNameFull.addEventListener('click', function(event) {
                 event.preventDefault(); // Prevent the default anchor action
@@ -212,29 +254,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
         if (tax_rate_STCG) {
-            updateTaxRateDisplaySTCG(tax_rate_STCG, tax_rate_STCG_value);
+            jsUpdateTaxRateDisplaySTCG(tax_rate_STCG, tax_rate_STCG_value);
             tax_rate_STCG.addEventListener('input', function() {
-                updateTaxRateDisplaySTCG(tax_rate_STCG, tax_rate_STCG_value);
+                jsUpdateTaxRateDisplaySTCG(tax_rate_STCG, tax_rate_STCG_value);
                 jsEnableProfileSubmitButton();
             });
         }
 
         if (tax_rate_LTCG) {
-            updateTaxRateDisplayLTCG(tax_rate_STCG, tax_rate_STCG_value);
+            jsUpdateTaxRateDisplayLTCG(tax_rate_STCG, tax_rate_STCG_value);
             document.getElementById('tax_rate_LTCG').addEventListener('input', function() { 
-                updateTaxRateDisplayLTCG(tax_rate_LTCG, tax_rate_LTCG_value);
+                jsUpdateTaxRateDisplayLTCG(tax_rate_LTCG, tax_rate_LTCG_value);
                 jsEnableProfileSubmitButton();
             });
         }
     }
-    // /javascript for /profile --------------------------------------------------------------
+    // /javascript for /profile -----------------------------------------------
 
 
-    // javascript for /register --------------------------------------------------------------
+    // javascript for /register -----------------------------------------------
     if (window.location.href.includes('/register')) {
         console.log("Running myFinance50.js for /register... ");
         
-        // Pulls in elements if they exist on page and assigns them to variables
         var name_first = document.getElementById('name_first');
         var name_last = document.getElementById('name_last');
         var username = document.getElementById('username');
@@ -249,10 +290,6 @@ document.addEventListener('DOMContentLoaded', function() {
         var tax_rate_LTCG_value = document.getElementById("tax_rate_LTCG_value");
         var registerForm = document.querySelector('form'); // Selects the only form on the page
 
-        
-        //$('[data-toggle="tooltip"]').tooltip()
-
-        // Capture the profile form submission
         if (registerForm) {
             registerForm.addEventListener('submit', function(event) {
                 var taxRateSTCGValue = parseFloat(document.getElementById('tax_rate_STCG_value').innerText.replace('%', '')).toFixed(2);
@@ -264,7 +301,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Lists the functions to run if the given elements are on the page
         if (name_first) {
             document.getElementById('name_first').addEventListener('input', function() {
                 jsEnableRegisterSubmitButton();
@@ -305,140 +341,63 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         if (tax_rate_STCG) {
-            updateTaxRateDisplaySTCG(tax_rate_STCG, tax_rate_STCG_value);
+            jsUpdateTaxRateDisplaySTCG(tax_rate_STCG, tax_rate_STCG_value);
             tax_rate_STCG.addEventListener('input', function() {
-                updateTaxRateDisplaySTCG(tax_rate_STCG, tax_rate_STCG_value);
+                jsUpdateTaxRateDisplaySTCG(tax_rate_STCG, tax_rate_STCG_value);
             });
         }
 
         if (tax_rate_LTCG) {
-            updateTaxRateDisplayLTCG(tax_rate_STCG, tax_rate_STCG_value);
+            jsUpdateTaxRateDisplayLTCG(tax_rate_STCG, tax_rate_STCG_value);
             document.getElementById('tax_rate_LTCG').addEventListener('input', function() { 
-                updateTaxRateDisplayLTCG(tax_rate_LTCG, tax_rate_LTCG_value);
+                jsUpdateTaxRateDisplayLTCG(tax_rate_LTCG, tax_rate_LTCG_value);
             });
         }
     } 
-    // /javascript for /register --------------------------------------------------------------
+    // /javascript for /register ----------------------------------------------
 
 
-
-    // Function description: When box is clicked, input boxes for fist and last name appear.
-    function jsShowHiddenNameField() {
-        /* Pull in the relevant elements from the html */
-        var profile_hidden_name_container = document.getElementById('profile_hidden_name_container');
-        var name_first = document.getElementById('name_first');
-        var name_last = document.getElementById('name_last');
-        var updateButtonNameFull = document.getElementById('updateButtonNameFull');
-        console.log(`Running jsShowHiddenNameField()`)
-        console.log(`Running jsShowHiddenNameField()...`)
-        console.log(`Running jsShowHiddenNameField()... CSRF Token is ${csrfToken}`);
-
+    // javascript for /sell ------------------------------------------
+    if (window.location.href.includes('/sell')) {
+        console.log("Running myFinance50.js for /sell... ");
         
-        /* Check if hidden content is already displayed */
-        if (profile_hidden_name_container.style.display === 'block') {
-            // Hide the container and clear the input field
-            profile_hidden_name_container.style.display = 'none';
-            name_first.value = '';
-            name_last.value = '';
-            updateButtonNameFull.innerHTML = 'update';
-            updateButtonNameFull.color = 'grey';
-            updateButtonNameFull.classList.remove('btn-secondary');
-            updateButtonNameFull.classList.add('btn-primary');
-        } else {
-            // Show the container
-            profile_hidden_name_container.style.display = 'block';
-            updateButtonNameFull.innerHTML = 'undo';
-            updateButtonNameFull.classList.remove('btn-primary');
-            updateButtonNameFull.classList.add('btn-secondary');
+        var symbol = document.getElementById('symbol');
+        var shares = document.getElementById('shares');
+        
+        // Debounce function
+        function debounce(func, timeout = 300){
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { func.apply(this, args); }, timeout);
+            };
+        }
+
+        // Function that wraps jsSymbolValidation with debouncing
+        function debounceSharesValidation() {
+            jsSharesValidation().then(submit_enabled => {
+                jsEnableSellSubmitButton();
+            });
+        }
+
+        if (symbol) {
+            document.getElementById('symbol').addEventListener('input', function() {
+                jsEnableSellSubmitButton();
+            });
+        }
+        
+        if (shares) {
+            document.getElementById('shares').addEventListener('input', function() {
+                jsSharesValidation();
+                jsEnableSellSubmitButton();
+            });
         }
     }
+    // /javascript for /sell ------------------------------------------
 
 
-    // Function description: When box is clicked, input boxes for username appears.
-    function jsShowHiddenUsernameField() {
-        /* Pull in the relevant elements from the html */
-        var profile_hidden_username_container = document.getElementById('profile_hidden_username_container');
-        var username = document.getElementById('username');
-        var updateButtonUsername = document.getElementById('updateButtonUsername');
-        console.log(`Running jsShowHiddenUsernameField()`)
-        console.log(`Running jsShowHiddenUsernameField()...`)
-        console.log(`Running jsShowHiddenUsernameField()... CSRF Token is ${csrfToken}`);
 
-        
-        /* Check if hidden content is already displayed */
-        if (profile_hidden_username_container.style.display === 'block') {
-            // Hide the container and clear the input field
-            profile_hidden_username_container.style.display = 'none';
-            username.value = '';
-            updateButtonUsername.innerHTML = 'update';
-            updateButtonUsername.color = 'grey';
-            updateButtonUsername.classList.remove('btn-secondary');
-            updateButtonUsername.classList.add('btn-primary');
-        } else {
-            // Show the container
-            profile_hidden_username_container.style.display = 'block';
-            updateButtonUsername.innerHTML = 'undo';
-            updateButtonUsername.classList.remove('btn-primary');
-            updateButtonUsername.classList.add('btn-secondary');
-        }
-    }
-
-
-    // Function description: Real-time feedback re availability of username.
-    function jsUsernameValidation() {
-        return new Promise((resolve, reject) => {
-            var username = document.getElementById('username').value.trim();
-            var username_validation = document.getElementById('username_validation');
-            console.log(`Running jsUsernameValidation()`);
-            console.log(`Running jsUsernameValidation()... username is: ${username}`);
-            console.log(`running jsUsernameValidation()... CSRF Token is: ${csrfToken}`); 
-
-            if (username === '') {
-                console.log(`Running jsUsernameValidation()... username ==='' (username is empty)`);
-                username_validation.innerHTML = '';
-                username_validation.style.display = 'none';
-                submit_enabled = false;
-                resolve(submit_enabled);
-            } else {
-                console.log(`Running jsUsernameValidation()... username != '' (username is not empty)`);
-                fetch('/check_username_registered', {
-                    method: 'POST',
-                    body: new URLSearchParams({ 'user_input': username }),
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRFToken': csrfToken,
-                    }
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.text();
-                    } else {
-                        throw new Error('Server responded with a non-200 status');
-                    }
-                })
-                .then(text => {
-                    if (text === 'True') {
-                        username_validation.innerHTML = 'Username unavailable';
-                        username_validation.style.color = 'red';
-                        submit_enabled = false;
-                    } else {
-                        username_validation.innerHTML = 'Username available';
-                        username_validation.style.color = '#22bd39';
-                        submit_enabled = true;
-                    }
-                    username_validation.style.display = 'block';
-                    resolve(submit_enabled);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    username_validation.innerHTML = 'An error occurred. Please try again.';
-                    username_validation.style.color = 'red';
-                    username_validation.style.display = 'block';
-                });
-            }
-        });
-    }
-
+    // Function definitions -------------------------------------------------------------------    
 
     // Function description: Provides real-time feedback to user re availability of username.
     function jsEmailValidation() {
@@ -649,8 +608,187 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+
+    // Function description: Tells user if (a) stock symbol is valid and (b) if the buy or sell txn can proceed.
+    function jsSharesValidation() {
+        return new Promise((resolve, reject) => {
+            var transaction_type = document.getElementById('transaction_type').value;
+            var symbol = document.getElementById('symbol').value.trim();
+            var shares = document.getElementById('shares').value;
+            var shares_validation = document.getElementById('shares_validation');
+            console.log(`Running jsSharesValidation()`);
+            console.log(`Running jsSharesValidation()... symbol is: ${symbol}`);
+            console.log(`running jsSharesValidation()... CSRF Token is: ${csrfToken}`);
+
+            if (shares === '' || symbol === '') {
+                console.log(`Running jsSharesValidation()... shares or symbol is empty)`);
+                shares_validation.innerHTML = '';
+                shares_validation.style.display = 'none';
+                submit_enabled = false;
+                resolve(submit_enabled);
+            } else {
+                console.log(`Running jsSharesValidation()... shares is not empty`);
+                fetch('/check_valid_shares', {
+                    method: 'POST',
+                    body: new URLSearchParams({ 'user_input_symbol': symbol, 'user_input_shares': shares, 'transaction_type': transaction_type }),
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrfToken,
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Running jsSharesValidation()... server responded with a non-200 status');
+                    }
+                })
+                .then(response => {
+                    if (response['status'] === 'error') {
+                        shares_validation.innerHTML = response['message'];
+                        shares_validation.style.color = 'red';
+                        submit_enabled = false;
+                    } else {
+                        shares_validation.innerHTML = response['message']
+                        shares_validation.style.color = '#22bd39';
+                        submit_enabled = true;
+                    }
+                    shares_validation.style.display = 'block';
+                    resolve(submit_enabled);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    shares_validation.innerHTML = 'An error occurred. Please try again.';
+                    shares_validation.style.color = 'red';
+                    shares_validation.style.display = 'block';
+                });
+            }
+        });
+    }
+
+
+    // Function description: When box is clicked, input boxes for fist and last name appear.
+    function jsShowHiddenNameField() {
+        var profile_hidden_name_container = document.getElementById('profile_hidden_name_container');
+        var name_first = document.getElementById('name_first');
+        var name_last = document.getElementById('name_last');
+        var updateButtonNameFull = document.getElementById('updateButtonNameFull');
+        console.log(`Running jsShowHiddenNameField()`)
+        console.log(`Running jsShowHiddenNameField()...`)
+        console.log(`Running jsShowHiddenNameField()... CSRF Token is ${csrfToken}`);
+
+        
+        /* Check if hidden content is already displayed */
+        if (profile_hidden_name_container.style.display === 'block') {
+            // Hide the container and clear the input field
+            profile_hidden_name_container.style.display = 'none';
+            name_first.value = '';
+            name_last.value = '';
+            updateButtonNameFull.innerHTML = 'update';
+            updateButtonNameFull.color = 'grey';
+            updateButtonNameFull.classList.remove('btn-secondary');
+            updateButtonNameFull.classList.add('btn-primary');
+        } else {
+            // Show the container
+            profile_hidden_name_container.style.display = 'block';
+            updateButtonNameFull.innerHTML = 'undo';
+            updateButtonNameFull.classList.remove('btn-primary');
+            updateButtonNameFull.classList.add('btn-secondary');
+        }
+    }
+
+
+    // Function description: When box is clicked, input boxes for username appears.
+    function jsShowHiddenUsernameField() {
+        /* Pull in the relevant elements from the html */
+        var profile_hidden_username_container = document.getElementById('profile_hidden_username_container');
+        var username = document.getElementById('username');
+        var updateButtonUsername = document.getElementById('updateButtonUsername');
+        console.log(`Running jsShowHiddenUsernameField()`)
+        console.log(`Running jsShowHiddenUsernameField()...`)
+        console.log(`Running jsShowHiddenUsernameField()... CSRF Token is ${csrfToken}`);
+        
+        /* Check if hidden content is already displayed */
+        if (profile_hidden_username_container.style.display === 'block') {
+            // Hide the container and clear the input field
+            profile_hidden_username_container.style.display = 'none';
+            username.value = '';
+            updateButtonUsername.innerHTML = 'update';
+            updateButtonUsername.color = 'grey';
+            updateButtonUsername.classList.remove('btn-secondary');
+            updateButtonUsername.classList.add('btn-primary');
+        } else {
+            // Show the container
+            profile_hidden_username_container.style.display = 'block';
+            updateButtonUsername.innerHTML = 'undo';
+            updateButtonUsername.classList.remove('btn-primary');
+            updateButtonUsername.classList.add('btn-secondary');
+        }
+    }
+
+
+    // Function description: Tells user if a stock symbol.
+    function jsSymbolValidation() {
+        return new Promise((resolve, reject) => {
+            var symbol = document.getElementById('symbol').value.trim();
+            var shares = document.getElementById('shares');
+            var symbol_validation = document.getElementById('symbol_validation');
+            console.log(`Running jsSymbolValidation()`);
+            console.log(`Running jsSymbolValidation()... symbol is: ${symbol}`);
+            console.log(`running jsSymbolValidation()... CSRF Token is: ${csrfToken}`);
+
+            if (symbol === '') {
+                console.log(`Running jsSymbolValidation()... symbol ===' ' (symbol is empty)`);
+                ///shares.enabled = false;
+                symbol_validation.innerHTML = '';
+                symbol_validation.style.display = 'none';
+                submit_enabled = false;
+                resolve(submit_enabled);
+            } else {
+                console.log(`Running jsSymbolValidation()... symbol is not empty. Symbol is: ${ symbol }`);
+                fetch('/check_valid_symbol', {
+                    method: 'POST',
+                    body: new URLSearchParams({ 'user_input': symbol }),
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrfToken,
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.text();
+                    } else {
+                        throw new Error('Running jsSymbolValidation()... server responded with a non-200 status');
+                    }
+                })
+                .then(text => {
+                    if (text === 'False') {
+                        //shares.disabled = true;
+                        symbol_validation.innerHTML = 'Invalid symbol';
+                        symbol_validation.style.color = 'red';
+                        submit_enabled = false;
+                    } else {
+                        //shares.disabled = false;
+                        symbol_validation.innerHTML = 'Valid symbol';
+                        symbol_validation.style.color = '#22bd39';
+                        submit_enabled = true;
+                    }
+                    symbol_validation.style.display = 'block';
+                    resolve(submit_enabled);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    symbol_validation.innerHTML = 'An error occurred. Please try again.';
+                    symbol_validation.style.color = 'red';
+                    symbol_validation.style.display = 'block';
+                });
+            }
+        });
+    }
+
+
     // Function description: Enables and shows submit button provided the user has
-    function updateTaxRateDisplaySTCG(slider, display) {
+    function jsUpdateTaxRateDisplaySTCG(slider, display) {
         var hiddenInput = document.getElementById('tax_rate_STCG_hidden');
         var newTaxRate = parseFloat(slider.value).toFixed(2);
         display.innerHTML = newTaxRate + '%';
@@ -660,8 +798,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    
     // Function description: Enables and shows submit button provided the user has
-    function updateTaxRateDisplayLTCG(slider, display) {
+    function jsUpdateTaxRateDisplayLTCG(slider, display) {
         var hiddenInput = document.getElementById('tax_rate_LTCG_hidden');
         var newTaxRate = parseFloat(slider.value).toFixed(2);
         display.innerHTML = newTaxRate + '%';
@@ -670,6 +809,112 @@ document.addEventListener('DOMContentLoaded', function() {
             hiddenInput.value = newTaxRate;
         }
     }
+
+
+    // Function description: Real-time feedback re availability of username.
+    function jsUsernameValidation() {
+        return new Promise((resolve, reject) => {
+            var username = document.getElementById('username').value.trim();
+            var username_validation = document.getElementById('username_validation');
+            console.log(`Running jsUsernameValidation()`);
+            console.log(`Running jsUsernameValidation()... username is: ${username}`);
+            console.log(`running jsUsernameValidation()... CSRF Token is: ${csrfToken}`); 
+
+            if (username === '') {
+                console.log(`Running jsUsernameValidation()... username ==='' (username is empty)`);
+                username_validation.innerHTML = '';
+                username_validation.style.display = 'none';
+                submit_enabled = false;
+                resolve(submit_enabled);
+            } else {
+                console.log(`Running jsUsernameValidation()... username != '' (username is not empty)`);
+                fetch('/check_username_registered', {
+                    method: 'POST',
+                    body: new URLSearchParams({ 'user_input': username }),
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrfToken,
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.text();
+                    } else {
+                        throw new Error('Server responded with a non-200 status');
+                    }
+                })
+                .then(text => {
+                    if (text === 'True') {
+                        username_validation.innerHTML = 'Username unavailable';
+                        username_validation.style.color = 'red';
+                        submit_enabled = false;
+                    } else {
+                        username_validation.innerHTML = 'Username available';
+                        username_validation.style.color = '#22bd39';
+                        submit_enabled = true;
+                    }
+                    username_validation.style.display = 'block';
+                    resolve(submit_enabled);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    username_validation.innerHTML = 'An error occurred. Please try again.';
+                    username_validation.style.color = 'red';
+                    username_validation.style.display = 'block';
+                });
+            }
+        });
+    }
+
+    // Function description: Enables buy button at /buy
+    async function jsEnableBuySubmitButton() {
+        var submitButton = document.getElementById('submit_button');
+        
+        // Initially disable submit to ensure button is disabled while promises are in progress
+        submitButton.disabled = true;
+        
+        // Create an array of promises with labels
+        var labeledPromises = [
+            { label: 'Symbol Check', promise: jsSymbolValidation() },
+            { label: 'Shares Check', promise: jsSharesValidation() }
+        ];
+        console.log(`Running jsEnableBuySubmitButton()`)
+        console.log(`Running jsEnableBuySubmitButton()... CSRF Token is: ${csrfToken}`);
+
+        Promise.all(labeledPromises.map(labeledPromise => {
+            // Add a console.log statement before each promise
+            //console.log(`Running jsEnableBuySubmitButton()... Executing promise: ${labeledPromise.label}`);
+    
+            return labeledPromise.promise.then(result => {
+                // Add a console.log statement after each promise resolves
+                console.log(`Running jsEnableBuySubmitButton()... Promise (${labeledPromise.label}) resolved with result: ${result}`);
+                return { label: labeledPromise.label, result: result };
+            });
+        }))
+            .then((results) => {
+                // Log each promise result
+                results.forEach(res => {
+                    console.log(`Result of ${res.label}: ${res.result}`);
+                });
+    
+                // Check if any of the promises return false
+                var allPromisesPassed = results.every(res => res.result === true);
+                
+                if (!allPromisesPassed) {
+                    submitButton.disabled = true;
+                    console.log(`Running jsEnableBuySubmitButton()... Submit button disabled.`);
+                } else {
+                    // All validations passed
+                    console.log(`Running jsEnableBuySubmitButton()... All validation checks passed, enabling submit button.`);
+                    submitButton.disabled = false;
+                }
+            }).catch((error) => {
+                // Handle errors if any of the Promises reject
+                console.error(`Running jsEnableBuySubmitButton()... Error is: ${error}.`);
+                submitButton.disabled = true;
+            });
+    }
+
     
     // Function description: Enables and shows submit button provided the user has
     // updated all of the input fields and that input is.
@@ -697,6 +942,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var password = document.getElementById('password').value.trim();
         var password_confirmation = document.getElementById('password_confirmation').value.trim();
         var submitButton = document.getElementById('submit_button');
+
+        // Initially disable submit to ensure button is disabled while promises are in progress
+        submitButton.disabled = true;
 
         // Create an array of promises with labels
         var labeledPromises = [
@@ -747,6 +995,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var email = document.getElementById('email').value.trim();
         var password_old = document.getElementById('password_old').value.trim();
         var submitButton = document.getElementById('submit_button');
+
+        // Initially disable submit to ensure button is disabled while promises are in progress
+        submitButton.disabled = true;
 
         // Create an array of promises with labels
         var labeledPromises = [
@@ -845,6 +1096,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var name_last = document.getElementById('name_last').value.trim();
         var submitButton = document.getElementById('submit_button');
 
+        // Initially disable submit to ensure button is disabled while promises are in progress
+        submitButton.disabled = true;
+
         // Create an array of promises with labels
         var labeledPromises = [
             { label: 'Username Validation', promise: jsUsernameValidation() },
@@ -885,6 +1139,56 @@ document.addEventListener('DOMContentLoaded', function() {
             }).catch((error) => {
                 // Handle errors if any of the Promises reject
                 console.error(`Running jsEnableRegisterSubmitButton()... Error is: ${error}.`);
+                submitButton.disabled = true;
+            });
+    }
+
+
+    // Function description: Enables buy button at /sell
+    async function jsEnableSellSubmitButton() {
+        var symbol = document.getElementById('symbol');
+        var submitButton = document.getElementById('submit_button');
+
+        // Initially disable submit to ensure button is disabled while promises are in progress
+        submitButton.disabled = true;
+
+        // Create an array of promises with labels
+        var labeledPromises = [
+            { label: 'Shares Check', promise: jsSharesValidation() }
+        ];
+        console.log(`Running jsEnableSellSubmitButton()`)
+        console.log(`Running jsEnableSellSubmitButton()... CSRF Token is: ${csrfToken}`);
+
+        Promise.all(labeledPromises.map(labeledPromise => {
+            // Add a console.log statement before each promise
+            //console.log(`Running jsEnableSellSubmitButton()... Executing promise: ${labeledPromise.label}`);
+    
+            return labeledPromise.promise.then(result => {
+                // Add a console.log statement after each promise resolves
+                console.log(`Running jsEnableSellSubmitButton()... Promise (${labeledPromise.label}) resolved with result: ${result}`);
+                return { label: labeledPromise.label, result: result };
+            });
+        }))
+            .then((results) => {
+                // Log each promise result
+                results.forEach(res => {
+                    console.log(`Result of ${res.label}: ${res.result}`);
+                });
+    
+                // Check if any of the promises return false
+                var allPromisesPassed = results.every(res => res.result === true);
+                
+                if (!allPromisesPassed || symbol.value.trim === '') {
+                    submitButton.disabled = true;
+                    console.log(`Running jsEnableSellSubmitButton()... Submit button disabled.`);
+                } else {
+                    // All validations passed
+                    console.log(`Running jsEnableSellSubmitButton()... All validation checks passed, enabling submit button.`);
+                    submitButton.disabled = false;
+                }
+            }).catch((error) => {
+                // Handle errors if any of the Promises reject
+                console.error(`Running jsEnableSellSubmitButton()... Error is: ${error}.`);
                 submitButton.disabled = true;
             });
     }

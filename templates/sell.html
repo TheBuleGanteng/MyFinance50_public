@@ -5,42 +5,58 @@
 {% endblock %}
 
 {% block main %}
-<h2>Sell Stocks</h2>
+
+<!-- Instructional text -->
+<div class="container-fluid ps-0 mb-1">
+    <div class="container-fluid container-instructions-start-bold">
+        Please enter a stock symbol and number of shares.
+    </div>
+    <div class="container-fluid container-instructions-start">
+    </div>
+</div>
+<!-- /Instructional text -->
+
 <form action="/sell" method="post">
     {{ form.hidden_tag() }}
+
+    <!-- transaction_type (hidden) -->
+    {{ form.transaction_type }}
+    <!-- /transaction_type (hidden) -->
     
     <table>
         <thead>
             <tr>
+                <!-- table labels -->
                 <th>{{ form.symbol.label }}</th>
                 <th>{{ form.shares.label }}</th>
                 <th></th>
+                <!-- /table labels -->
+
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td>
-                    <select id="symbol" name="symbol">
-                        <option disabled selected>Select Symbol</option>
-                        {% for choice in form.symbol.choices %}
-                            <option value='{{ choice }}'>{{ choice }}</option>
-                        {% endfor %}
-                    </select>
-                    <div>
-                        {% if form.symbol.errors %}
-                            <div class='text-danger'>
-                                {% for error in form.symbol.errors %}
-                                    {{ error }}
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
+                <td style="display: flex; flex-direction: column; justify-content: center;">
+                
+                    <!-- symbol -->
+                    {{ form.symbol }}
+                    {% if form.symbol.errors %}
+                        <div class='text-danger'>
+                            {% for error in form.symbol.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                <!-- /symbol -->
+    
                 </td>
-                <!-- /symbols -->
+                        
+                <td style="display: flex; flex-direction: column; justify-content: center;">
 
-                <!-- shares -->
-                <td class="start-align">{{ form.shares(class='form-control', id='shares', placeholder='Shares to sell') }}</td>
-                <div>
+                    <!-- shares -->
+                    <div class="start-align">
+                        {{ form.shares(class='form-control', id='shares', placeholder='Shares to sell') }}
+                    </div>   
                     {% if form.shares.errors %}
                         <div class='text-danger'>
                             {% for error in form.shares.errors %}
@@ -48,10 +64,25 @@
                             {% endfor %}
                         </div>
                     {% endif %}
-                </div>
-                <!-- /shares -->
+                    <!-- /shares -->
+
+                    <!-- shares_validation -->
+                    <div class='container-input-validation mt-2' id='shares_validation' name='shares_validation' style='display: none;'>
+                        <a></a>
+                    </div>
+                    <!-- /shares_validation -->
+
+                </td>
                 
-                <td>{{ form.submit(class='btn btn-primary', type='submit') }}</td>
+                <!-- cancel and submit buttons-->
+                <td style='vertical-align: top'>
+                    <div id='submit_button_container' style='height: fit-content;'>
+                        {{ form.submit_button(class='btn btn-success w-100 mt-2', id='submit_button', disabled=True) }}
+                        <a href="{{ url_for('index') }}" class='btn btn-secondary w-100 mt-2'>Back</a>                    
+                    </div>
+                </td>
+                <!-- /cancel and submit buttons-->
+
             </tr>
         </tbody>
     </table>

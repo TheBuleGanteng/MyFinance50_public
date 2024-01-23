@@ -67,9 +67,9 @@ def lookup(symbol):
         quotes = list(csv.DictReader(response.content.decode("utf-8").splitlines()))
         quotes.reverse()
         price = round(float(quotes[0]["Adj Close"]), 2)
-        print(f'running lookup(symbol)... resonse is: { response }')
-        print(f'running lookup(symbol)... price is: { price }')
-        print(f'running lookup(symbol)... quotes is: { quotes }')
+        #print(f'running lookup(symbol)... resonse is: { response }')
+        #print(f'running lookup(symbol)... price is: { price }')
+        #print(f'running lookup(symbol)... quotes is: { quotes }')
         return {
             "name": symbol,
             "price": price,

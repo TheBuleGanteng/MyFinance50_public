@@ -5,49 +5,93 @@
 {% endblock %}
 
 {% block main %}
-    <form action="/buy" method="post">
-        {{ form.hidden_tag() }}
 
-        <!-- symbol -->
-        <div class="mb-3">
-            {{ form.symbol(class='form-control mx-auto w-auto', id='symbol', autocomplete='off', autofocus=True, placeholder='Stock symbol') }}
+<!-- Instructional text -->
+<div class="container-fluid ps-0 mb-1">
+    <div class="container-fluid container-instructions-start-bold">
+        Please enter a stock symbol and number of shares.
+    </div>
+    <div class="container-fluid container-instructions-start">
+        Required fields
+    </div>
+</div>
+<!-- /Instructional text -->
+
+<form action="/buy" method="post">
+    {{ form.hidden_tag() }}
+
+    <!-- transaction_type (hidden) -->
+    {{ form.transaction_type }}
+    <!-- /transaction_type (hidden) -->
+
+    <!-- symbol -->
+    <div class='user_input_registration row'>
+        <div class='col-sm-2' style='align-self: flex-start; text-align: start'>
+            {{ form.symbol.label(class='form-label-start-req-bold') }}
         </div>
-        <div class='mb-3'>
+        <div class='col-sm-8 col-md-6 col-lg-4'>
+            {{ form.symbol(class='form-control', id='symbol', autocomplete='off', autofocus=True, placeholder='Stock symbol') }}
             {% if form.symbol.errors %}
-                <div class='text-danger'>
+                <div class='text-danger mt-2'>
                     {% for error in form.symbol.errors %}
                         {{ error }}
                     {% endfor %}
                 </div>
             {% endif %}
         </div>
-        <!-- /symbol -->
+    </div>
+    <!-- /symbol -->
 
-        <!-- shares -->
-        <div class="mb-3">
-            {{ form.shares(class='form-control mx-auto w-auto', id='shares', autocomplete='off', autofocus=True, placeholder='Number of shares') }}
+    <!-- symbol validation -->
+    <div class='user_input_registration row'>
+        <label class='col-sm-2 form-label-start-req-bold'></label>
+        <div class='col-sm-8 col-md-6 col-lg-4 container-input-validation' id='symbol_validation' name='symbol_validation' style='display: none;'>
+                <a></a>
         </div>
-        <div class='mb-3'>
+        <div class='col-sm-2 mt-2'>
+        </div>
+    </div>
+    <!-- /symbol validation -->
+
+    <!-- shares -->
+    <div class='user_input_registration row'>
+        <div class='col-sm-2' style='align-self: flex-start; text-align: start'>
+            {{ form.shares.label(class='form-label-start-req-bold') }}
+        </div>
+        <div class='col-sm-8 col-md-6 col-lg-4'>
+            {{ form.shares(class='form-control', id='shares', autocomplete='off', placeholder='Number of shares') }}
             {% if form.shares.errors %}
-                <div class='text-danger'>
+                <div class='text-danger mt-2'>
                     {% for error in form.shares.errors %}
                         {{ error }}
                     {% endfor %}
                 </div>
             {% endif %}
         </div>
-        <!-- /shares -->
+    </div>
+    <!-- /shares -->
 
-        <!-- cancel and submit buttons-->
-        <div class='row' style='margin-top: 20px; margin-bottom: 10px;'>
-            <div class='col-sm-6 col-md-4 col-lg-3'>
-                <a href="{{ url_for('index') }}" class='btn btn-secondary w-100'>Back</a>
-            </div>
-            <div class='col-sm-6 col-md-4 col-lg-3'>
-                {{ form.submit_button(class='btn btn-success w-100', id='submit_button', disabled=True) }}
-            </div>
+    <!-- shares validation -->
+    <div class='user_input_registration row'>
+        <label class='col-sm-2 form-label-start-req-bold'></label>
+        <div class='col-sm-8 col-md-6 col-lg-4 container-input-validation' id='shares_validation' name='shares_validation' style='display: none;'>
+                <a></a>
         </div>
-        <!-- /cancel and submit buttons-->
-    
-    </form>
+        <div class='col-sm-2 mt-2'>
+        </div>
+    </div>
+    <!-- /shares validation -->
+
+    <!-- cancel and submit buttons-->
+    <div class='row' style='margin-top: 20px; margin-bottom: 10px;'>
+        <div class='col-sm-6 col-md-4 col-lg-3'>
+            <a href="{{ url_for('index') }}" class='btn btn-secondary w-100'>Back</a>
+        </div>
+        <div class='col-sm-6 col-md-4 col-lg-3'>
+            {{ form.submit_button(class='btn btn-success w-100', id='submit_button', disabled=True) }}
+        </div>
+    </div>
+    <!-- /cancel and submit buttons-->
+
+</form>
 {% endblock %}
