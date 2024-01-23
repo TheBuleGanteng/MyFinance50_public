@@ -1210,7 +1210,7 @@ def create_app(config_name=None):
                         symbol = symbol,
                         txn_shrs = -shares,
                         txn_shr_price = result['txn_shr_price'], 
-                        txn_value= result['txn_total_value']
+                        txn_value= -result['txn_total_value']
                     )
                     db.session.add(new_transaction)
                     print(f'running /sell ...  user.cash before deducting txn_value is: { user.cash } ')
