@@ -1,13 +1,27 @@
+import base64
 import csv
 from datetime import datetime, timedelta
+from email.message import EmailMessage
+from email.mime.audio import MIMEAudio
+from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from flask_oauthlib.client import OAuth
+from google.auth import impersonated_credentials
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from itsdangerous import TimedSerializer as Serializer
+import mimetypes
 import os
 import pytz
+import random
 import requests
+import string
 import subprocess
 import urllib
 import uuid
-
 from flask import redirect, render_template, session
 from functools import wraps
 
@@ -100,12 +114,14 @@ def generate_nonce():
 # Set token age (used for token generation and to set auto removal of stale DB records)
 max_token_age_seconds = os.getenv('MAX_TOKEN_AGE_SECONDS')
 
+
 # Token generation for password reset and registration
 def generate_unique_token(id, secret_key):
     print(f'running generate_unique_token(id)... starting')
     s = Serializer(secret_key, salt='reset-salt')
     print(f'running generate_unique_token(id)... generated token')
     return s.dumps({'id': id})
+
 
 # Token validation for password reset and registration
 def verify_unique_token(token, secret_key, max_age):
@@ -123,3 +139,58 @@ def verify_unique_token(token, secret_key, max_age):
     except Exception as e:
         print(f'running verify_unique_token(token, max_age=max_token_age_seconds):... error is: { e }')
         return None
+
+
+# Pull company data via FMP API
+def company_data(symbol, fmp_key):
+    print(f'running get_stock_info(symbol): ... symbol is: { symbol }')
+    print(f'running get_stock_info(symbol): ... fmp_key is: { fmp_key }')
+    
+    try:
+        limit = 1
+        response = requests.get(f'https://financialmodelingprep.com/api/v3/profile/{symbol}?apikey={fmp_key}')       
+        print(f'running get_stock_info(symbol): ... response is: { response }')
+        data = response.json()
+        print(f'running get_stock_info(symbol): ... data is: { data }')
+
+        # Check if data contains at least one item
+        if data and isinstance(data, list):
+            return data[0]
+        else:
+            return None
+
+        
+    except Exception as e:
+        print(f'running get_stock_info(symbol): ... function tried symbol: { symbol } but errored with error: { e }')
+        return None
+
+
+# Send emails
+def send_email(body, recipient):
+    
+    print(f'running send_email ... body is: {body}')
+    
+    # Load service account credentials
+    SERVICE_ACCOUNT_FILE = os.path.join(os.path.dirname(__file__), 'gitignored', 'gmail_access_credentials.json')
+    SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+
+    # Now use the source credentials to acquire credentials to impersonate another service account
+    credentials = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+
+    # If you're using domain-wide delegation, specify the user to impersonate
+    credentials = credentials.with_subject('donotreply@mattmcdonnell.net')
+
+    # Build the Gmail service
+    service = build('gmail', 'v1', credentials=credentials)
+
+    # Create and send email
+    email_msg = body
+    mime_message = MIMEMultipart()
+    mime_message['to'] = f'{recipient}'
+    mime_message['from'] = 'donotreply@mattmcdonnell.net'
+    mime_message.attach(MIMEText(email_msg, 'plain'))
+    raw_string = base64.urlsafe_b64encode(mime_message.as_bytes()).decode()
+
+    message = service.users().messages().send(userId='me', body={'raw': raw_string}).execute()
+    print('Message Id: %s' % message['id'])

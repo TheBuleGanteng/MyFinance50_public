@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let initial_tax_loss_offsets;
     let initial_tax_rate_STCG_value;
     let initial_tax_rate_LTCG_value;
+    let bounce_timeout = 300;
     
     if (document.getElementById('accounting_method')) {        
         initial_accounting_method = document.getElementById('accounting_method').value;
@@ -64,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var shares = document.getElementById('shares');
         
         // Debounce function
-        function debounce(func, timeout = 300){
+        function debounce(func, timeout = bounce_timeout){
             let timer;
             return (...args) => {
                 clearTimeout(timer);
@@ -365,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var shares = document.getElementById('shares');
         
         // Debounce function
-        function debounce(func, timeout = 300){
+        function debounce(func, timeout = bounce_timeout){
             let timer;
             return (...args) => {
                 clearTimeout(timer);

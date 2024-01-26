@@ -1,15 +1,21 @@
+import base64
 from Custom_FlaskWtf_Filters_and_Validators.validators_generic import pw_strength, pw_req_length, pw_req_letter, pw_req_num, pw_req_symbol, user_input_allowed_symbols
 from datetime import datetime
 from dotenv import load_dotenv
+from email.message import EmailMessage
 from flask import Flask, flash, jsonify, make_response, redirect, render_template, request, session, url_for
 from flask_talisman import Talisman
 from flask_mail import Mail, Message
 from flask_migrate import Migrate
+from flask_oauthlib.client import OAuth
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy 
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from forms.forms import BuyForm, LoginForm, PasswordChangeForm, PasswordResetRequestForm, PasswordResetRequestNewForm, ProfileForm, QuoteForm, RegisterForm, SellForm
-from helpers import apology, generate_nonce, generate_unique_token, login_required, lookup, timestamp_SG, usd, verify_unique_token
+import google.auth
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from helpers import send_email, apology, company_data, generate_nonce, generate_unique_token, login_required, lookup, timestamp_SG, usd, verify_unique_token
 import logging
 from logging.handlers import RotatingFileHandler
 import os
@@ -25,6 +31,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 db = SQLAlchemy()
 csrf = CSRFProtect()
 mail = Mail()
+#oauth = OAuth()
 talisman = Talisman()
 load_dotenv()
 
@@ -41,6 +48,9 @@ def create_app(config_name=None):
     else:
         from configs.config_dev import DevelopmentConfig
         app.config.from_object(DevelopmentConfig)
+    
+    # Set project name (used in emails)
+    project_name = 'myFinance50'
     
     # Set up logging to file
     if app.config.get('LOG_TO_FILE', False):
@@ -66,6 +76,9 @@ def create_app(config_name=None):
     # Enable flask-migrate (allows db changes via models.py)
     migrate = Migrate(app, db)
 
+    # FMP api keys:
+    fmp_key = os.getenv('FMP_API_KEY')
+
     # For flask-wtf generalized filters and validator, only append to sys.path if the path is set
     sys.path.append(app.config.get('CUSTOM_FLASKWTF_PATH'))
 
@@ -73,6 +86,7 @@ def create_app(config_name=None):
     db.init_app(app)
     csrf.init_app(app)
     mail.init_app(app)
+    oauth = OAuth(app)
     talisman.init_app(app, content_security_policy=app.config['CONTENT_SECURITY_POLICY'])
 
     @app.after_request
@@ -89,7 +103,7 @@ def create_app(config_name=None):
         print(f'running setup... SQLAlchemy Engine URL is { db.engine.url }')
         db.create_all()
         print('running setup... db.create_all has run')
-    
+        
 # ------------------------------------------------------------------------    
 
     @app.route("/")
@@ -137,7 +151,7 @@ def create_app(config_name=None):
         for symbol in portfolio:
             try:
                 # For that row (stock), append a field called "current price" which looks up the symbol and retrieves the price, setting that to "current price"
-                portfolio[symbol]['current_price'] = lookup(symbol)['price']
+                portfolio[symbol]['current_price'] = company_data(symbol, fmp_key)['price']
                 print(f'running /...  portfolio[symbol][current_price] for symbol: { symbol } is= { portfolio[symbol]["current_price"] }')
             except Exception as e:
                 print(f'running /...  Error 3.3: Error fetching price for {symbol}: {e}')
@@ -286,13 +300,16 @@ def create_app(config_name=None):
         print(f'running /check_valid_shares... transaction_type is: { transaction_type }')
         
         # Test 1: Ensure user_input_shares is a valid stock symbol
-        if lookup(user_input_symbol) is None:
+        if check_valid_symbol(user_input_symbol) == None:
             #print(f'running /check_valid_shares... user entered the following invalid symbol { user_input_symbol }. Test failed.')
             return {'status': 'error', 'message': 'Invalid stock symbol entered.'}
         
-        # Test 2: Ensure user_input_shares is an integer (positive or negative)
+        # Test 2: Ensure user_input_shares is a positive integer (positive or negative)
         try:
             user_input_shares = int(user_input_shares)
+            if user_input_shares < 0:
+                print(f'running /check_valid_shares... user entered a non-integer for shares. Test failed.')
+                return {'status': 'error', 'message': 'Cannot enter a negative value for shares.'}
         except ValueError:
             print(f'running /check_valid_shares... user entered a non-integer for shares. Test failed.')
             return {'status': 'error', 'message': 'Non-integer value entered for shares.'}
@@ -303,7 +320,7 @@ def create_app(config_name=None):
             #print(f'running /check_valid_shares... pulled user object: { user }')
             #print(f'running /check_valid_shares... user_input_shares (part 2) is: { user_input_shares }')
 
-            symbol_data = lookup(user_input_symbol)
+            symbol_data = company_data(user_input_symbol, fmp_key)
             txn_price_per_share = symbol_data['price']
             txn_total_value = user_input_shares * txn_price_per_share
 
@@ -360,11 +377,16 @@ def create_app(config_name=None):
 
     # Returns True if user input is a registered email address.
     def check_valid_symbol(user_input, is_internal_call=False):
-        if lookup(user_input) != None:
-            #print(f'running /check_valid_symbol... user_input is a valid stock symbol: { user_input }')
-            return lookup(user_input)
-        else:
-            #print(f'running /check_email_registered... user_input is not a registered email: { user_input }')
+        try:
+            result = company_data(user_input, fmp_key)['symbol'] 
+            if result == None:
+                #print(f'running /check_email_registered... user_input is not a registered email: { user_input }')
+                return 'False' if not is_internal_call else None
+            else:
+                #print(f'running /check_valid_symbol... user_input is a valid stock symbol: { user_input }')
+                return result
+        except Exception as e:
+            print(f'running /check_valid_symbol... function errored: { e }')
             return 'False' if not is_internal_call else None
         
 # -----------------------------------------------------------------------
@@ -537,7 +559,27 @@ def create_app(config_name=None):
 
         # Redirect user to login form
         return redirect(url_for('index'))
+# -----------------------------------------------------------------------
+    """
+    @app.route('/mail_login')
+    def mail_login():
+        return oauth.authorize(callback=url_for('mail_authorized', _external=True))
 
+    @app.route('/mail_authorize')
+    def mail_authorized():
+        # Handle the Google OAuth response
+        response = oauth.authorized_response()
+        if response is None or response.get('access_token') is None:
+            # Handle authorization error
+            return jsonify({'error': 'Access denied: reason={} error={}'.format(
+                request.args['error_reason'],
+                request.args['error_description']
+            )}), 403
+    
+    # Use the Gmail access token to perform Google API calls
+    gmail_access_token = response['access_token']
+    gmail_access_token = response['access_token']
+    """
 # -----------------------------------------------------------------------
 
     @app.route("/password_change", methods=["GET", "POST"])
@@ -593,7 +635,7 @@ def create_app(config_name=None):
                         print(f"Running /password_change ... erroring on this field is: {error}")
                 flash('Error: Invalid input. Please see the red text below for assistance.')
                 return render_template('password_change.html', form=form)
-        
+            
         # Step 2: User arrived via GET
         else:
             print(f'Running /password_change ... user arrived via GET')
@@ -637,26 +679,29 @@ def create_app(config_name=None):
                     print(f'running /password_reset_request ... token generated')
 
                     # Step 2.1.1.2: Formulate email
-                    token_age_max_minutes = int(int(app.config['MAX_TOKEN_AGE_SECONDS']) / 60)
+                    token_age_max_minutes = int(int(os.getenv('MAX_TOKEN_AGE_SECONDS')) / 60)
+                    print(f'running /password_reset_request ... token_age_max_minutes is: { token_age_max_minutes }')
                     username = user.username
-                    sender = 'info@mattmcdonnell.net'
-                    recipients = [user.email]
+                    recipient = user.email
                     subject = 'Password reset from MyFinance50'
+                    attachments = None
                     url = url_for('password_reset_request_new', token=token, _external=True)
-                    body = f'''Dear { username }: to reset your password, please visit the following link within the next { token_age_max_minutes } minutes: { url }
+                    body = f'''Dear { username }: to reset your password, please visit the following link within the next { token_age_max_minutes } minutes:
+                    
+{ url }
 
-    If you did not make this request, you may ignore it.
+If you did not make this request, you may ignore it.
 
-    Thank you,
-    Team MyFinance50'''
+Thank you,
+Team {project_name}'''
 
-                    # Step 2.1.1.3: Send email.
-                    msg = Message(subject=subject, body=body, sender=sender, recipients=recipients)
-                    mail.send(msg)
+                    # Step 2.1.1.3: Generate token, draft email, and send email
+                    send_email(body=body, recipient=recipient)
+                    #gmail_send_message(draft[id])
                     print(f'Running /password_reset_request... reset email sent to email address: { user.email }.')
 
                     # Step 2.1.1.4: Flash success msg redirect to login.
-                    print(f'running /password_reset_request ...  successfully changed user password, redirecting to / ')
+                    print(f'running /password_reset_request ...  successfully changed user password, redirecting to /login ')
                     session['temp_flash'] = 'Reset email sent. Please do not forget to check your spam folder!'
                     time.sleep(1)
                     return redirect(url_for('login'))
@@ -664,7 +709,7 @@ def create_app(config_name=None):
                 # Step 2.1.2: If can't send email (likely due to user entering an unregistered email address), still flash
                 # email sent message and redirect to login. This is done to reduce chances of brute force attack.
                 except Exception as e:
-                    print(f'running /password_reset_request ...  Error 1.1.2 (user-submitted email not registered) Flashing sent email msg and redirecting to /login')
+                    print(f'running /password_reset_request ...  Error 1.1.2 (user-submitted email not registered): { e }. Flashing sent email msg and redirecting to /login')
                     session['temp_flash'] = 'Reset email sent. Please do not forget to check your spam folder!'
                     time.sleep(1)
                     return redirect(url_for('login'))
@@ -913,15 +958,15 @@ def create_app(config_name=None):
 
             # Step 1.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
-                print(f'running /password_change ... User: { session["user"] } submitted via post and user input passed form validation')
+                print(f'running /quote ... User: { session["user"] } submitted via post and user input passed form validation')
 
                 # Step 1.1.1: Pull in the user inputs from quote.html
                 symbol = form.symbol.data
 
                 # Step 1.1.2: Pull quote, returning error message if symbol is invalid
                 try:
-                    name = check_valid_symbol(symbol)['name']
-                    price = check_valid_symbol(symbol)['price']
+                    name = company_data(symbol, fmp_key)['companyName']
+                    price = company_data(symbol, fmp_key)['price']
                     print(f'running /quote... name is: { name }')
                     print(f'running /quote... price is: { price }')
                     print(f'running /quote... successfully pulled quote. Flashing message and directing user to quoted.html')
@@ -1038,22 +1083,22 @@ def create_app(config_name=None):
                     # Step 2.1.1.4: Formulate email
                     token_age_max_minutes = int(int(os.getenv('MAX_TOKEN_AGE_SECONDS'))/60)
                     username = user.username
-                    sender = 'info@mattmcdonnell.net'
-                    recipients = [user.email]
+                    recipient = user.email
                     subject = 'Confirm you registration with MyFinance50'
                     url = url_for('register_confirmation', token=token, _external=True)
-                    body = f'''Dear { user.username }: to confirm your registration with MyFinance50, please visit the following link within the next { token_age_max_minutes } minutes: { url }
+                    body = f'''Dear { user.username }: to confirm your registration with MyFinance50, please visit the following link within the next { token_age_max_minutes } minutes:
+                    
+{ url }
 
-    If you did not make this request, you may ignore it.
+If you did not make this request, you may ignore it.
 
-    Thank you,
-    Team MyFinance50'''
+Thank you,
+Team {project_name}'''
 
                     # Step 2.1.1.5: Send email.
-                    msg = Message(subject=subject, body=body, sender=sender, recipients=recipients)
-                    mail.send(msg)
+                    send_email(body=body, recipient=recipient)
                     print(f'Running /register... reset email sent to email address: { user.email }.')
-
+                    
                     # Step 2.1.1.6: Flash success msg redirect to login.
                     print(f'running /register ...  successfully registered user, redirecting to /login ')
                     session['temp_flash'] = 'To confirm your registration and log in, please follow the instructions sent to you by email. Please do not forget to check your spam folder!'
@@ -1251,5 +1296,6 @@ def create_app(config_name=None):
 
     return app
 
-if __name__ == '__main__': 
+if __name__ == '__main__':
+    app = create_app()
     app.run()

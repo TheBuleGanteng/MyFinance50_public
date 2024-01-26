@@ -63,3 +63,4 @@ class DevelopmentConfig:
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     MAIL_USE_TLS = True
     MAIL_USE_SSL = False
+    
