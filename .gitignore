@@ -3,3 +3,4 @@
 
 # Ignore gitignored folder
 gitignored/
+logs/
