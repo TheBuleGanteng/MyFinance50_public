@@ -11,7 +11,7 @@ class LoginForm(FlaskForm):
     submit_button = SubmitField('Log In')
 
 class BuyForm(FlaskForm):
-    transaction_type = HiddenField(default='buy')
+    transaction_type = HiddenField(default='BOT')
     symbol = StringField('Stock symbol', filters=[strip_filter, uppercase_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
     shares = IntegerField('Number of shares', validators=[DataRequired(), is_positive_validator], render_kw={'required': True})
     submit_button = SubmitField('Buy')
@@ -68,7 +68,7 @@ class RegisterForm(FlaskForm):
     submit_button = SubmitField('Register')
 
 class SellForm(FlaskForm):
-    transaction_type = HiddenField(default='sell')
+    transaction_type = HiddenField(default='SLD')
     symbol = SelectField('Choose a stock to sell', validators=[DataRequired()], choices=[], coerce=str)
     shares = IntegerField('Select how many shares to sell', validators=[DataRequired(), is_positive_validator])
     submit_button = SubmitField('Submit')

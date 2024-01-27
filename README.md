@@ -102,6 +102,8 @@ password reset emails)
 
 
 #### NOTES FOR USE:
+
+##### Updating Custom_FlaskWtf_Filters_and_Validators
 This project uses a submodule of the [Custom_FlaskWtf_Filters_and_Validators](https://github.com/TheBuleGanteng/Custom_FlaskWtf_Filters_and_Validators) repository. To ensure you are using the most updated version of that repository, please do the following upon download:
 
 1. Navigate to the Submodule Directory within your main project.
@@ -123,3 +125,9 @@ This project uses a submodule of the [Custom_FlaskWtf_Filters_and_Validators](ht
 *git submodule update --init --recursive*
 
 This process ensures that your main project uses the specific, updated version of the Custom_FlaskWtf_Filters_and_Validators submodule.
+
+##### Models.py
+This project uses [SQLAlchemy ORM](https://www.sqlalchemy.org/) to manage database interactions. Instructions for updating models.py is as follows:
+
+1. Migrate via the following command:
+*flask db migrate -m "Description of the changes"*

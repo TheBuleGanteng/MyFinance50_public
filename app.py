@@ -1,21 +1,22 @@
+#from authlib.integrations.flask_client import OAuth
 import base64
 from Custom_FlaskWtf_Filters_and_Validators.validators_generic import pw_strength, pw_req_length, pw_req_letter, pw_req_num, pw_req_symbol, user_input_allowed_symbols
 from datetime import datetime
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 from email.message import EmailMessage
+from extensions import db, csrf, talisman, load_dotenv  
 from flask import Flask, flash, jsonify, make_response, redirect, render_template, request, session, url_for
-from flask_talisman import Talisman
+#from flask_talisman import Talisman
 from flask_mail import Mail, Message
 from flask_migrate import Migrate
-from flask_oauthlib.client import OAuth
+#from flask_oauthlib.client import OAuth
 from flask_session import Session
-from flask_sqlalchemy import SQLAlchemy 
-from flask_wtf.csrf import CSRFProtect, generate_csrf
+#from flask_wtf.csrf import CSRFProtect, generate_csrf
 from forms.forms import BuyForm, LoginForm, PasswordChangeForm, PasswordResetRequestForm, PasswordResetRequestNewForm, ProfileForm, QuoteForm, RegisterForm, SellForm
 import google.auth
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from helpers import send_email, apology, company_data, generate_nonce, generate_unique_token, login_required, lookup, timestamp_SG, usd, verify_unique_token
+from myFinance50_helpers import apology, company_data, fmp_key, generate_nonce, generate_unique_token, login_required, lookup, send_email, percentage, Portfolio, process_user_transactions, update_listings, usd, verify_unique_token
 import logging
 from logging.handlers import RotatingFileHandler
 import os
@@ -28,12 +29,12 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 
 # Must declare this before app initialization to avoid circular import.
-db = SQLAlchemy()
-csrf = CSRFProtect()
-mail = Mail()
+#db = SQLAlchemy()
+#csrf = CSRFProtect()
+#mail = Mail()
 #oauth = OAuth()
-talisman = Talisman()
-load_dotenv()
+#talisman = Talisman()
+#load_dotenv()
 
 def create_app(config_name=None):    
     app = Flask(__name__)
@@ -72,21 +73,20 @@ def create_app(config_name=None):
 
     # Custom filter
     app.jinja_env.filters['usd'] = usd
+    app.jinja_env.filters['percentage'] = percentage
 
     # Enable flask-migrate (allows db changes via models.py)
     migrate = Migrate(app, db)
 
-    # FMP api keys:
-    fmp_key = os.getenv('FMP_API_KEY')
-
+    
     # For flask-wtf generalized filters and validator, only append to sys.path if the path is set
     sys.path.append(app.config.get('CUSTOM_FLASKWTF_PATH'))
 
     Session(app)
     db.init_app(app)
     csrf.init_app(app)
-    mail.init_app(app)
-    oauth = OAuth(app)
+    #mail.init_app(app)
+    #oauth = OAuth(app)
     talisman.init_app(app, content_security_policy=app.config['CONTENT_SECURITY_POLICY'])
 
     @app.after_request
@@ -97,7 +97,7 @@ def create_app(config_name=None):
         response.headers["Pragma"] = "no-cache"
         return response
 
-    from models import Transaction, User
+    from models import Listing, Transaction, User
     
     with app.app_context():
         print(f'running setup... SQLAlchemy Engine URL is { db.engine.url }')
@@ -136,12 +136,12 @@ def create_app(config_name=None):
                 portfolio[symbol] = {
                     'symbol': symbol,
                     'summed_txn_shares': 0, 
-                    'txn_shr_price': transaction.txn_shr_price, 
+                    'transaction_value_per_share': transaction.transaction_value_per_share, 
                     'summed_txn_value': 0
                 }
             # Step 3.2.2: Populate the fields for that txn
-            portfolio[symbol]['summed_txn_shares'] += transaction.txn_shrs
-            portfolio[symbol]['summed_txn_value'] += transaction.txn_value
+            portfolio[symbol]['summed_txn_shares'] += transaction.shares
+            portfolio[symbol]['summed_txn_value'] += transaction.transaction_value_total
         
         # Recreates portfolio, including symbols only if the corresponding summed_txn_value data != 0    
         portfolio = {symbol: data for symbol, data in portfolio.items() if data['summed_txn_value'] != 0}
@@ -188,6 +188,35 @@ def create_app(config_name=None):
 
 # ---------------------------------------------------------------------
     
+    @app.route("/index_detail")
+    @login_required
+    def index_detail():
+        print(f'running /index_detail ...  starting /index_detail  ')
+        print(f'running /index_detail ... database URL is: { os.path.abspath("finance.sqlite") }')
+        print(f'running /index_detail ... session.get(user) is: { session.get("user", None) }')
+        print(f'running /index_detail ... CSRF token is: { session.get("csrf_token", None) }')
+
+        # Step 1: Pull user object based on session[user].
+        user = db.session.query(User).filter_by(id = session.get('user')).scalar()
+        
+        # Step 2: Handle if no id (unlikely).
+        if not user:
+            print(f'running /index_detail ...  error 2.0: no user data found for session[user] of: { session["user"] }')
+            session['temp_flash'] = 'Error 2.0: User not found. Please log in again.'
+            return redirect(url_for('login'))
+        print(f'running /index_detail...  user is: { user }')
+
+        # Step 3: Call the function to create the portfolio object for the user
+        portfolio = process_user_transactions(user)
+        print(f'running /index_detail ... for user {user} ... portfolio.cash is: { portfolio.cash }')
+
+        
+
+        # Step 3.8: Render index.html and pass in portfolio, cash, total_portfolio, username
+        return render_template('index_detail.html', user=user, portfolio=portfolio)
+    
+# --------------------------------------------------------------------------
+
     @app.route('/buy', methods=['GET', 'POST'])
     @login_required
     def buy():
@@ -227,14 +256,14 @@ def create_app(config_name=None):
                                 # Add new entry into the transaction table to represent the share purchase.
                 new_transaction = Transaction(
                     user_id = user.id, 
-                    txn_type = 'BOT', 
+                    type = 'BOT', 
                     symbol = symbol, 
-                    txn_shrs = shares, 
-                    txn_shr_price = result['txn_shr_price'], 
-                    txn_value= result['txn_total_value']
+                    shares = shares, 
+                    transaction_value_per_share = result['transaction_value_per_share'], 
+                    transaction_value_total= result['transaction_value_total']
                 )
                 db.session.add(new_transaction)
-                user.cash = user.cash - result['txn_total_value']
+                user.cash = user.cash - result['transaction_value_total']
                 db.session.commit()
 
                 # Step 1.1.6: Flash success message and redirect to /
@@ -321,28 +350,28 @@ def create_app(config_name=None):
             #print(f'running /check_valid_shares... user_input_shares (part 2) is: { user_input_shares }')
 
             symbol_data = company_data(user_input_symbol, fmp_key)
-            txn_price_per_share = symbol_data['price']
-            txn_total_value = user_input_shares * txn_price_per_share
+            transaction_value_per_share = symbol_data['price']
+            transaction_value_total = user_input_shares * transaction_value_per_share
 
             # Step 3: Commence logic if user is buying shares (sufficient cash to complete purchase?)
-            if transaction_type == 'buy':
+            if transaction_type == 'BOT':
                 #print(f'running /check_valid_shares... user: {user} is trying to buy shares')
                 
                 # Step 3.1: Test if user has sufficient cash to cover the share purchase
-                if user.cash < txn_total_value:
+                if user.cash < transaction_value_total:
                     #print(f'running /check_valid_shares... user: {user} has insufficient cash to complete purchase. Test failed.')
-                    return {'status': 'error', 'message': f'Current cash balance of { usd(user.cash) } is insufficient to complete purchase costing { usd(txn_total_value) }.'}
+                    return {'status': 'error', 'message': f'Current cash balance of { usd(user.cash) } is insufficient to complete purchase costing { usd(transaction_value_total) }.'}
                 
                 else:
                     #print(f'running /check_valid_shares... user: {user} has sufficient cash. Test passed')
-                    return {'status': 'success', 'message': 'Sufficient cash to buy the shares.', 'symbol_data': symbol_data, 'txn_shr_price': txn_price_per_share, 'txn_total_value' : txn_total_value}
+                    return {'status': 'success', 'message': 'Sufficient cash to buy the shares.', 'symbol_data': symbol_data, 'transaction_value_per_share': transaction_value_per_share, 'transaction_value_total' : transaction_value_total}
             
             # Step 4: Commence logic if user is selling shares (sufficient shares to complete sale?)
             elif transaction_type == 'sell':
                 #print(f'running /check_valid_shares... user: {user} is trying to sell shares')
                 
                 # Step 4.1: Test if user has sufficient shares to sell
-                total_shares_owned = db.session.query(func.sum(Transaction.txn_shrs))\
+                total_shares_owned = db.session.query(func.sum(Transaction.shares))\
                     .filter(Transaction.user_id == session.get('user'), Transaction.symbol == user_input_symbol)\
                     .scalar() or 0
                 #print(f'running /check_valid_shares ...  total shares of symbol: { user_input_symbol } is: { total_shares_owned } ')
@@ -355,7 +384,7 @@ def create_app(config_name=None):
                 # Step 4.3: If user is trying to sell more shares than owned, test passes
                 else:
                     #print(f'running /check_valid_shares... user: {user} has sufficient shares to sell. Test passed')
-                    return {'status': 'success', 'message': 'You have sufficient shares to sell.', 'symbol_data': symbol_data, 'txn_shr_price': txn_price_per_share, 'txn_total_value' : txn_total_value}
+                    return {'status': 'success', 'message': 'You have sufficient shares to sell.', 'symbol_data': symbol_data, 'transaction_value_per_share': transaction_value_per_share, 'transaction_value_total' : transaction_value_total}
             
             # Step 5: Commence logic if the third argument passed to check_valid_shares function is neither buy nor sell (e.g. invalid input)
             else:
@@ -468,11 +497,11 @@ def create_app(config_name=None):
         print('running /history... route started ')
 
         # Pull the symbol and the total shares owned from the transactions database
-        history = db.session.query(Transaction).filter_by(user_id = session['user']).order_by(Transaction.txn_date.desc()).all()
+        history = db.session.query(Transaction).filter_by(user_id = session['user']).order_by(Transaction.timestamp.desc()).all()
         print(f'running /history... history is: { history } ')
         
         for transaction in history:
-            print(f'running history... transaction timestamp is: { transaction.txn_date }')
+            print(f'running history... transaction timestamp is: { transaction.timestamp }')
 
         # Render index.html and pass in the values in the portfolio pull and for cash.
         return render_template("history.html", history=history)
@@ -559,27 +588,7 @@ def create_app(config_name=None):
 
         # Redirect user to login form
         return redirect(url_for('index'))
-# -----------------------------------------------------------------------
-    """
-    @app.route('/mail_login')
-    def mail_login():
-        return oauth.authorize(callback=url_for('mail_authorized', _external=True))
 
-    @app.route('/mail_authorize')
-    def mail_authorized():
-        # Handle the Google OAuth response
-        response = oauth.authorized_response()
-        if response is None or response.get('access_token') is None:
-            # Handle authorization error
-            return jsonify({'error': 'Access denied: reason={} error={}'.format(
-                request.args['error_reason'],
-                request.args['error_description']
-            )}), 403
-    
-    # Use the Gmail access token to perform Google API calls
-    gmail_access_token = response['access_token']
-    gmail_access_token = response['access_token']
-    """
 # -----------------------------------------------------------------------
 
     @app.route("/password_change", methods=["GET", "POST"])
@@ -1251,16 +1260,16 @@ Team {project_name}'''
                     # Step 3.1.1.4: Create entry for the transaction in the DB.
                     new_transaction = Transaction(
                         user_id = user.id,
-                        txn_type = 'SLD',
+                        type = 'SLD',
                         symbol = symbol,
-                        txn_shrs = -shares,
-                        txn_shr_price = result['txn_shr_price'], 
-                        txn_value= -result['txn_total_value']
+                        shares = shares,
+                        transaction_value_per_share = result['transaction_value_per_share'], 
+                        transaction_value_total= -result['transaction_value_total']
                     )
                     db.session.add(new_transaction)
-                    print(f'running /sell ...  user.cash before deducting txn_value is: { user.cash } ')
-                    user.cash = user.cash + result['txn_total_value']
-                    print(f'running /sell ...  user.cash after deducting txn_value is: { user.cash } ')        
+                    print(f'running /sell ...  user.cash before deducting transaction_value_total is: { user.cash } ')
+                    user.cash = user.cash + result['transaction_value_total']
+                    print(f'running /sell ...  user.cash after deducting transaction_value_total is: { user.cash } ')        
                     
                     db.session.commit()
                     print(f'running /sell ...  new_transaction added to DB is: { new_transaction } and user.cash is: { user.cash }')

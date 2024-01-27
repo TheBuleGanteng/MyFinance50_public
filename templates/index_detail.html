@@ -1,0 +1,70 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Portfolio Details
+{% endblock %}
+
+{% block main %}
+<div class='row' style='margin-bottom: 20px;'>
+    <div class='col-sm-4 col-md-3 col-lg-2'>
+        <a href="{{ url_for('index') }}" class='btn btn-primary w-100'>Switch to simple view</a>
+    </div>    
+</div>
+<h2>{{ user.username }}'s Portfolio - Detailed View</h2>
+<table>
+    <thead>
+        <tr>
+            <!-- Below are the headers for the table that shows stock info -->
+            <th>Symbol</th>
+            <th>Shares Owned</th>
+            <th>Average purchase price per share</th>
+            <th>Total cost basis</th>
+            <th>Market price per share</th>
+            <th>Total market value</th>
+            <th>Total gain or loss</th>
+            <th>Total gain or loss, percent</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Below are the values that have been passed in from app.py in the /quote function -->
+        {% for symbol, data in portfolio._portfolio_data.items() %}
+            <tr>
+                <td>{{ symbol }}</td>
+                <td>{{ data['shares']  }}</td>
+                <td>{{ data['cost_basis_per_share'] | usd }}</td>
+                <td>{{ data['cost_basis_total'] | usd }}</td>
+                <td>{{ data['market_value_per_share'] | usd }}</td>
+                <td>{{ data['market_value_total'] | usd }}</td>
+                <td>{{ data['gain_or_loss_usd'] | usd }}</td>
+                <td>{{ data['gain_or_loss_percent'] | percentage }}</td>
+
+            </tr>
+        {% endfor %}
+            <tr>
+                <b>
+                <td>Cash</td>
+                <td>-</td>
+                <td>-</td>
+                <td>{{ portfolio.cash | usd }}</td>
+                <td>-</td>
+                <td>{{ portfolio.cash | usd }}</td>
+                <td>-</td>
+                <td>-</td>
+                </b>
+            </td>
+            <tr style="font-weight:bold">
+                <td>Total Portfolio</td>
+                <td>{{ portfolio.portfolio_total_shares }}</td>
+                <td>{{ portfolio.portfolio_cost_basis_per_share | usd }} </td>
+                <td>{{ portfolio.portfolio_cost_basis_incl_cash | usd }}</td>
+                <td>-</td>
+                <td>{{ portfolio.portfolio_market_value_incl_cash | usd }}</td>
+                <td>{{ portfolio.portfolio_gain_or_loss_usd_incl_cash | usd }}</td>
+                <td>{{ portfolio.portfolio_gain_or_loss_percent_incl_cash | percentage }}</td>
+            </td>
+
+        </tr>
+    </tbody>
+</table>
+{% endblock %}
+

@@ -1,4 +1,4 @@
-from app import db
+from extensions import db
 from datetime import datetime
 from sqlalchemy import Column, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
@@ -18,18 +18,18 @@ class User(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name_first = db.Column(db.String, nullable=True)
-    name_last = db.Column(db.String, nullable=True)
-    username = db.Column(db.String, nullable=False, unique=True)
-    email = db.Column(db.String, nullable=False, unique=True)
+    name_first = db.Column(db.String, nullable=False, default="no_entry")
+    name_last = db.Column(db.String, nullable=False, default="no_entry")
+    username = db.Column(db.String, nullable=False, unique=True, default="no_entry")
+    email = db.Column(db.String, nullable=False, unique=True, default="no_entry")
     confirmed = db.Column(db.String, nullable=False, default = 'No')
-    created = db.Column(db.DateTime, default=datetime.now)
+    created = db.Column(db.DateTime, nullable=False, default=datetime.now)
     hash = db.Column(db.String, nullable=False)
-    cash = db.Column(db.Float, default= 10000.00)
-    accounting_method = db.Column(db.String, nullable=False)
-    tax_loss_offsets = db.Column(db.String, nullable=False)
-    tax_rate_STCG = db.Column(db.Float, default=30.0, nullable=False)
-    tax_rate_LTCG = db.Column(db.Float, default=15.0, nullable=False)
+    cash = db.Column(db.Float(precision=2), nullable=False, default= 10000.00)
+    accounting_method = db.Column(db.String, nullable=False, default='FIFO')
+    tax_loss_offsets = db.Column(db.String, nullable=False, default='On')
+    tax_rate_STCG = db.Column(db.Float, nullable=False, default= 15.00)
+    tax_rate_LTCG = db.Column(db.Float, nullable=False, default= 30.00)
 
     # Relationship to Transactions (if you need to access user's transactions)
     transactions = relationship("Transaction", backref="user")
@@ -47,14 +47,33 @@ class Transaction(db.Model):
     # the new definition should replace the old one.
     __table_args__ = {'extend_existing': True}
     
-    txn_id = db.Column(db.Integer, primary_key=True, nullable=False)
-    user_id = db.Column(db.Integer, ForeignKey('users.id'), nullable=False)
-    txn_date = db.Column(db.DateTime)
-    txn_type = db.Column(db.String, nullable=False)
+    transaction_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, ForeignKey('users.id'))
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    type = db.Column(db.String, nullable=False)
     symbol = db.Column(db.String, nullable=False)
-    txn_shrs = db.Column(db.Integer, nullable=False)
-    txn_shr_price= db.Column(db.Float, nullable=False)
-    txn_value= db.Column(db.Float, nullable=False)
+    shares = db.Column(db.Integer, nullable=False)
+    transaction_value_per_share= db.Column(db.Float(precision=2), nullable=False)
+    transaction_value_total= db.Column(db.Float(precision=2), nullable=False)
+
+    # Converts the table to a dict, if needed (for example w/ API).
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+
+class Listing(db.Model):
+    # Name of the table
+    __tablename__ = 'listings'
+    # If a table w/ the same name already exists in the SQLAlchemy metadata, 
+    # the new definition should replace the old one.
+    __table_args__ = {'extend_existing': True}
+    
+    symbol = db.Column(db.String, primary_key=True)
+    name = db.Column(db.String)
+    price = db.Column(db.Float)
+    exchange = db.Column(db.String)
+    exchange_short = db.Column(db.String)
+    listing_type= db.Column(db.String)
 
     # Converts the table to a dict, if needed (for example w/ API).
     def as_dict(self):

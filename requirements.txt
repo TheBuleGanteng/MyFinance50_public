@@ -1,6 +1,7 @@
 alembic==1.13.1
 alpaca-py==0.14.0
 annotated-types==0.6.0
+Authlib[flask]
 bcrypt==4.1.1
 blinker==1.7.0
 cachelib==0.10.2
@@ -21,7 +22,6 @@ Flask-Bcrypt==1.0.1
 Flask-Login==0.6.3
 Flask-Mail==0.9.1
 Flask-Migrate==4.0.5
-Flask-OAuthlib==0.9.6
 Flask-Session==0.5.0
 Flask-SQLAlchemy==3.1.1
 flask-talisman==1.1.0
@@ -86,7 +86,7 @@ uritemplate==4.1.1
 urllib3==2.1.0
 uuid==1.30
 websockets==11.0.3
-Werkzeug==2.3.7
+Werkzeug==3.0.1
 WTForms==3.1.1
 yarg==0.1.9
 zope.interface==6.1
