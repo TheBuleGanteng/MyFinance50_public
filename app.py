@@ -1,22 +1,17 @@
-#from authlib.integrations.flask_client import OAuth
 import base64
 from Custom_FlaskWtf_Filters_and_Validators.validators_generic import pw_strength, pw_req_length, pw_req_letter, pw_req_num, pw_req_symbol, user_input_allowed_symbols
 from datetime import datetime
-#from dotenv import load_dotenv
 from email.message import EmailMessage
 from extensions import db, csrf, talisman, load_dotenv  
 from flask import Flask, flash, jsonify, make_response, redirect, render_template, request, session, url_for
-#from flask_talisman import Talisman
 from flask_mail import Mail, Message
 from flask_migrate import Migrate
-#from flask_oauthlib.client import OAuth
 from flask_session import Session
-#from flask_wtf.csrf import CSRFProtect, generate_csrf
 from forms.forms import BuyForm, LoginForm, PasswordChangeForm, PasswordResetRequestForm, PasswordResetRequestNewForm, ProfileForm, QuoteForm, RegisterForm, SellForm
 import google.auth
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from myFinance50_helpers import apology, company_data, fmp_key, generate_nonce, generate_unique_token, login_required, lookup, send_email, percentage, Portfolio, process_user_transactions, update_listings, usd, verify_unique_token
+from myFinance50_helpers import apology, company_data, fmp_key, generate_nonce, generate_unique_token, login_required, lookup, send_email, percentage, Portfolio, project_name, process_user_transactions, update_listings, usd, verify_unique_token
 import logging
 from logging.handlers import RotatingFileHandler
 import os
@@ -27,14 +22,6 @@ import time
 from urllib.parse import unquote
 from werkzeug.security import check_password_hash, generate_password_hash
 
-
-# Must declare this before app initialization to avoid circular import.
-#db = SQLAlchemy()
-#csrf = CSRFProtect()
-#mail = Mail()
-#oauth = OAuth()
-#talisman = Talisman()
-#load_dotenv()
 
 def create_app(config_name=None):    
     app = Flask(__name__)
@@ -49,9 +36,6 @@ def create_app(config_name=None):
     else:
         from configs.config_dev import DevelopmentConfig
         app.config.from_object(DevelopmentConfig)
-    
-    # Set project name (used in emails)
-    project_name = 'myFinance50'
     
     # Set up logging to file
     if app.config.get('LOG_TO_FILE', False):
@@ -124,67 +108,12 @@ def create_app(config_name=None):
             return redirect(url_for('login'))
         print(f'running /...  user is: { user }')
 
-        # Step 3: Construct User's portfolio, w/ a row for each stock owned and the following cols:
-        # (a) ticker (b) current price per shr (c) total shrs owned (d) mkt val. of shrs owned
-        # Step 3.1: Initialize the dict
-        portfolio = {}
-        # Step 3.2: Loop for each transaction record in user_data
-        for transaction in user.transactions:
-            symbol = transaction.symbol
-            # Step 3.2.1: If a symbol is new to the portfolio, initialize it to the portfolio
-            if transaction.symbol not in portfolio:
-                portfolio[symbol] = {
-                    'symbol': symbol,
-                    'summed_txn_shares': 0, 
-                    'transaction_value_per_share': transaction.transaction_value_per_share, 
-                    'summed_txn_value': 0
-                }
-            # Step 3.2.2: Populate the fields for that txn
-            portfolio[symbol]['summed_txn_shares'] += transaction.shares
-            portfolio[symbol]['summed_txn_value'] += transaction.transaction_value_total
-        
-        # Recreates portfolio, including symbols only if the corresponding summed_txn_value data != 0    
-        portfolio = {symbol: data for symbol, data in portfolio.items() if data['summed_txn_value'] != 0}
-        print(f'running /...  finished populating portfolio, which is: { portfolio }')
+        # Step 3: Call the function to create the portfolio object for the user
+        portfolio = process_user_transactions(user)
+        print(f'running /index_detail ... for user {user} ... portfolio.cash is: { portfolio.cash }')
 
-        # Step 3.3: Append the mkt price for each stock in portfolio
-        for symbol in portfolio:
-            try:
-                # For that row (stock), append a field called "current price" which looks up the symbol and retrieves the price, setting that to "current price"
-                portfolio[symbol]['current_price'] = company_data(symbol, fmp_key)['price']
-                print(f'running /...  portfolio[symbol][current_price] for symbol: { symbol } is= { portfolio[symbol]["current_price"] }')
-            except Exception as e:
-                print(f'running /...  Error 3.3: Error fetching price for {symbol}: {e}')
-                portfolio[symbol]['current_price'] = 0
-
-        # Step 3.4: Pull cash from the customers table
-        if not user.cash:
-            print(f'running /...  cash is 0')
-            cash = 0
-        else:
-            # Convert that value to a real number
-            cash = user.cash
-            print(f'running /...  cash is: { cash }')
-
-        # Step 3.5: Get the value of all share holdings.
-        total_shares_value = 0        
-        for symbol in portfolio:
-            total_shares_value = total_shares_value + portfolio[symbol]['summed_txn_value']
-            print(f'running /...  total_shares_value for symbol: { symbol } is: { total_shares_value }')
-        print(f'running /...  total_shares_value overall is: { total_shares_value }')
-
-        # Step 3.6: Calculate total portfolio value (cash + total share holdings).
-        total_portfolio = total_shares_value + cash
-        print(f'running /...  total_portfolio is: { total_portfolio }')
-
-        # Step 3.7: Pass username into a variable
-        username = user.username
-        print(f'running /...  username is: { username }')
-
-        # Step 3.8: Render index.html and pass in portfolio, cash, total_portfolio, username
-        return render_template(
-            "index.html", portfolio=portfolio, cash=cash, total_portfolio=total_portfolio, username=username
-        )
+        # Step 4: Render index.html and pass in portfolio, cash, total_portfolio, username
+        return render_template('index.html', user=user, portfolio=portfolio)
 
 # ---------------------------------------------------------------------
     
@@ -210,9 +139,7 @@ def create_app(config_name=None):
         portfolio = process_user_transactions(user)
         print(f'running /index_detail ... for user {user} ... portfolio.cash is: { portfolio.cash }')
 
-        
-
-        # Step 3.8: Render index.html and pass in portfolio, cash, total_portfolio, username
+        # Step 4: Render index.html and pass in portfolio, cash, total_portfolio, username
         return render_template('index_detail.html', user=user, portfolio=portfolio)
     
 # --------------------------------------------------------------------------
@@ -239,13 +166,13 @@ def create_app(config_name=None):
                 # Step 1.1.1: Pull in the user inputs from buy.html
                 symbol = form.symbol.data
                 shares = form.shares.data
-                transaction_type = 'buy'
+                transaction_type = 'BOT'
                 print(f'running /buy ...  symbol is: { symbol } ')
                 print(f'running /buy ...  shares is: { shares } ')
 
                 # Step 1.1.2: Run check_valid_shares, which:
                 # (a) checks if symbol is valid and (b) checks that user has sufficient cash
-                result = check_valid_shares(symbol, shares, transaction_type)
+                result = check_valid_shares(user_input_symbol=symbol, user_input_shares=shares, transaction_type=transaction_type)
 
                 # Step 1.1.3: Handle if check_valid_shares(symbol, shares) failed
                 if result['status'] == 'error':
@@ -256,7 +183,7 @@ def create_app(config_name=None):
                                 # Add new entry into the transaction table to represent the share purchase.
                 new_transaction = Transaction(
                     user_id = user.id, 
-                    type = 'BOT', 
+                    type = transaction_type, 
                     symbol = symbol, 
                     shares = shares, 
                     transaction_value_per_share = result['transaction_value_per_share'], 
@@ -346,12 +273,15 @@ def create_app(config_name=None):
         try:
             # Step 3: Pull user object for signed-in user from DB
             user = db.session.query(User).filter_by(id=session.get('user')).scalar()
-            #print(f'running /check_valid_shares... pulled user object: { user }')
-            #print(f'running /check_valid_shares... user_input_shares (part 2) is: { user_input_shares }')
+            print(f'running /check_valid_shares... pulled user object: { user }')
+            print(f'running /check_valid_shares... user_input_shares (part 2) is: { user_input_shares }')
 
+            # Step 4: Query the API to get an updated price for user_input_symbol
             symbol_data = company_data(user_input_symbol, fmp_key)
-            transaction_value_per_share = symbol_data['price']
-            transaction_value_total = user_input_shares * transaction_value_per_share
+            transaction_value_per_share = round(symbol_data['price'], 2)
+            print(f'running /check_valid_shares... transaction_value_per_share is: { transaction_value_per_share }')
+            transaction_value_total = round(user_input_shares * transaction_value_per_share, 2)
+            print(f'running /check_valid_shares... transaction_value_total is: { transaction_value_total }')
 
             # Step 3: Commence logic if user is buying shares (sufficient cash to complete purchase?)
             if transaction_type == 'BOT':
@@ -360,14 +290,14 @@ def create_app(config_name=None):
                 # Step 3.1: Test if user has sufficient cash to cover the share purchase
                 if user.cash < transaction_value_total:
                     #print(f'running /check_valid_shares... user: {user} has insufficient cash to complete purchase. Test failed.')
-                    return {'status': 'error', 'message': f'Current cash balance of { usd(user.cash) } is insufficient to complete purchase costing { usd(transaction_value_total) }.'}
+                    return {'status': 'error', 'message': f'Current cash balance of { usd(user.cash) } is insufficient to complete purchase costing { usd(transaction_value_total) }'}
                 
                 else:
                     #print(f'running /check_valid_shares... user: {user} has sufficient cash. Test passed')
-                    return {'status': 'success', 'message': 'Sufficient cash to buy the shares.', 'symbol_data': symbol_data, 'transaction_value_per_share': transaction_value_per_share, 'transaction_value_total' : transaction_value_total}
+                    return {'status': 'success', 'message': f'Current cash balance of { usd(user.cash) } is sufficient to complete purchase costing { usd(transaction_value_total) }', 'symbol_data': symbol_data, 'transaction_value_per_share': transaction_value_per_share, 'transaction_value_total' : transaction_value_total}
             
             # Step 4: Commence logic if user is selling shares (sufficient shares to complete sale?)
-            elif transaction_type == 'sell':
+            elif transaction_type == 'SLD':
                 #print(f'running /check_valid_shares... user: {user} is trying to sell shares')
                 
                 # Step 4.1: Test if user has sufficient shares to sell
@@ -402,20 +332,27 @@ def create_app(config_name=None):
     
     def check_valid_symbol_route():
         user_input = request.form.get('user_input') if request.method == 'POST' else request.args.get('user_input')
+        
         return check_valid_symbol(user_input, False)
 
     # Returns True if user input is a registered email address.
     def check_valid_symbol(user_input, is_internal_call=False):
+        #print(f'running /check_valid_symbol ... function started')
+
         try:
-            result = company_data(user_input, fmp_key)['symbol'] 
-            if result == None:
-                #print(f'running /check_email_registered... user_input is not a registered email: { user_input }')
+            user_input = user_input.upper()
+            listing = db.session.query(Listing).filter_by(symbol=user_input).first()
+            print(f'running /check_valid_symbol ... listing is: { listing }')
+
+            if listing == None:
+                print(f'running /check_valid_symbol ... user_input is not a registered email: { user_input }')
                 return 'False' if not is_internal_call else None
             else:
-                #print(f'running /check_valid_symbol... user_input is a valid stock symbol: { user_input }')
-                return result
+                print(f'running /check_valid_symbol ... user_input is a valid stock symbol: { user_input }')
+                return 'True' if not is_internal_call else listing
+        
         except Exception as e:
-            print(f'running /check_valid_symbol... function errored: { e }')
+            print(f'running /check_valid_symbol ... function errored: { e }')
             return 'False' if not is_internal_call else None
         
 # -----------------------------------------------------------------------
@@ -1246,11 +1183,11 @@ Team {project_name}'''
                     # Step 3.1.1.1: Pull data from form
                     symbol = form.symbol.data
                     shares = form.shares.data
-                    transaction_type = 'sell'
+                    transaction_type = 'SLD'
                     print(f'running /sell ... shares is: { shares }')
 
                     # Step 3.1.1.2: Retrieve from DB the shares owned in the specified symbol
-                    result = check_valid_shares(symbol, shares, transaction_type)
+                    result = check_valid_shares(user_input_symbol=symbol, user_input_shares=shares, transaction_type=transaction_type)
 
                     # Step 3.1.1.3: Handle if check_valid_shares(symbol, shares) failed
                     if result['status'] == 'error':
@@ -1260,7 +1197,7 @@ Team {project_name}'''
                     # Step 3.1.1.4: Create entry for the transaction in the DB.
                     new_transaction = Transaction(
                         user_id = user.id,
-                        type = 'SLD',
+                        type = transaction_type,
                         symbol = symbol,
                         shares = shares,
                         transaction_value_per_share = result['transaction_value_per_share'], 

@@ -6,7 +6,5 @@ from flask_talisman import Talisman
 
 db = SQLAlchemy()
 csrf = CSRFProtect()
-#mail = Mail()
-#oauth = OAuth()
 talisman = Talisman()
 load_dotenv()

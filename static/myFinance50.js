@@ -38,8 +38,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let initial_tax_loss_offsets;
     let initial_tax_rate_STCG_value;
     let initial_tax_rate_LTCG_value;
-    let bounce_timeout = 300;
-    
+    let debounce_timeout = 200;
+    let symbolValidationPassed = false;
+    let sharesValidationPassed = false;
+
     if (document.getElementById('accounting_method')) {        
         initial_accounting_method = document.getElementById('accounting_method').value;
     }
@@ -60,12 +62,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // javascript for /buy ------------------------------------------
     if (window.location.href.includes('/buy')) {
         console.log("Running myFinance50.js for /buy... ");
-        
+
         var symbol = document.getElementById('symbol');
         var shares = document.getElementById('shares');
+        var submitButton = document.getElementById('submit_button');
         
         // Debounce function
-        function debounce(func, timeout = bounce_timeout){
+        function debounce(func, timeout = debounce_timeout){
             let timer;
             return (...args) => {
                 clearTimeout(timer);
@@ -73,22 +76,31 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         }
 
-        // Function that wraps jsSymbolValidation with debouncing
-        function debounceSymbolValidation() {
-            jsSymbolValidation().then(submit_enabled => {
-                jsEnableBuySubmitButton();
+        // Debounced symbol validation function
+        function debouncedSymbolValidation() {
+            // Immediately disable the submit button when input changes
+            submitButton.disabled = true;
+            jsSymbolValidation().then(() => {
+                jsEnableBuySubmitButton(); // Check if the button should be enabled
             });
         }
 
+        // Function that wraps jsSharesValidation with debouncing
+        function debouncedSharesValidation() {
+            // Immediately disable the submit button when input changes
+            submitButton.disabled = true;
+            jsSharesValidation().then(() => {
+                jsEnableBuySubmitButton(); // Check if the button should be enabled
+            });
+        }
+
+
         if (symbol) {
-            document.getElementById('symbol').addEventListener('input', debounce(debounceSymbolValidation, 500));
+            document.getElementById('symbol').addEventListener('input', debounce(debouncedSymbolValidation, 500));
         }
         
         if (shares) {
-            document.getElementById('shares').addEventListener('input', function() {
-                jsSharesValidation();
-                jsEnableBuySubmitButton();
-            });
+            document.getElementById('shares').addEventListener('input', debounce(debouncedSharesValidation, 500)); // Using the same timeout for consistency
         }
     }
     
@@ -366,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var shares = document.getElementById('shares');
         
         // Debounce function
-        function debounce(func, timeout = bounce_timeout){
+        function debounce(func, timeout = debounce_timeout){
             let timer;
             return (...args) => {
                 clearTimeout(timer);
@@ -620,13 +632,15 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`Running jsSharesValidation()`);
             console.log(`Running jsSharesValidation()... symbol is: ${symbol}`);
             console.log(`running jsSharesValidation()... CSRF Token is: ${csrfToken}`);
+            
+            sharesValidationPassed = false;
 
             if (shares === '' || symbol === '') {
                 console.log(`Running jsSharesValidation()... shares or symbol is empty)`);
                 shares_validation.innerHTML = '';
                 shares_validation.style.display = 'none';
-                submit_enabled = false;
-                resolve(submit_enabled);
+                sharesValidationPassed = false;
+                resolve(sharesValidationPassed);
             } else {
                 console.log(`Running jsSharesValidation()... shares is not empty`);
                 fetch('/check_valid_shares', {
@@ -648,20 +662,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (response['status'] === 'error') {
                         shares_validation.innerHTML = response['message'];
                         shares_validation.style.color = 'red';
-                        submit_enabled = false;
+                        sharesValidationPassed = false;
                     } else {
                         shares_validation.innerHTML = response['message']
                         shares_validation.style.color = '#22bd39';
-                        submit_enabled = true;
+                        sharesValidationPassed = true;
                     }
                     shares_validation.style.display = 'block';
-                    resolve(submit_enabled);
+                    resolve(sharesValidationPassed);
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     shares_validation.innerHTML = 'An error occurred. Please try again.';
                     shares_validation.style.color = 'red';
                     shares_validation.style.display = 'block';
+                    sharesValidationPassed = false;
+                    resolve(sharesValidationPassed);
                 });
             }
         });
@@ -738,13 +754,14 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`Running jsSymbolValidation()... symbol is: ${symbol}`);
             console.log(`running jsSymbolValidation()... CSRF Token is: ${csrfToken}`);
 
+            symbolValidationPassed = false;
+
             if (symbol === '') {
                 console.log(`Running jsSymbolValidation()... symbol ===' ' (symbol is empty)`);
-                ///shares.enabled = false;
                 symbol_validation.innerHTML = '';
                 symbol_validation.style.display = 'none';
-                submit_enabled = false;
-                resolve(submit_enabled);
+                symbolValidationPassed = false;
+                resolve(symbolValidationPassed);
             } else {
                 console.log(`Running jsSymbolValidation()... symbol is not empty. Symbol is: ${ symbol }`);
                 fetch('/check_valid_symbol', {
@@ -764,24 +781,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .then(text => {
                     if (text === 'False') {
-                        //shares.disabled = true;
                         symbol_validation.innerHTML = 'Invalid symbol';
                         symbol_validation.style.color = 'red';
-                        submit_enabled = false;
+                        symbolValidationPassed = false;
                     } else {
-                        //shares.disabled = false;
                         symbol_validation.innerHTML = 'Valid symbol';
                         symbol_validation.style.color = '#22bd39';
-                        submit_enabled = true;
+                        symbolValidationPassed = true;
                     }
                     symbol_validation.style.display = 'block';
-                    resolve(submit_enabled);
+                    resolve(symbolValidationPassed);
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     symbol_validation.innerHTML = 'An error occurred. Please try again.';
                     symbol_validation.style.color = 'red';
                     symbol_validation.style.display = 'block';
+                    sharesValidationPassed = false;
+                    resolve(sharesValidationPassed);
                 });
             }
         });
@@ -868,52 +885,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function description: Enables buy button at /buy
-    async function jsEnableBuySubmitButton() {
+    function jsEnableBuySubmitButton() {
         var submitButton = document.getElementById('submit_button');
         
         // Initially disable submit to ensure button is disabled while promises are in progress
-        submitButton.disabled = true;
-        
-        // Create an array of promises with labels
-        var labeledPromises = [
-            { label: 'Symbol Check', promise: jsSymbolValidation() },
-            { label: 'Shares Check', promise: jsSharesValidation() }
-        ];
         console.log(`Running jsEnableBuySubmitButton()`)
         console.log(`Running jsEnableBuySubmitButton()... CSRF Token is: ${csrfToken}`);
 
-        Promise.all(labeledPromises.map(labeledPromise => {
-            // Add a console.log statement before each promise
-            //console.log(`Running jsEnableBuySubmitButton()... Executing promise: ${labeledPromise.label}`);
-    
-            return labeledPromise.promise.then(result => {
-                // Add a console.log statement after each promise resolves
-                console.log(`Running jsEnableBuySubmitButton()... Promise (${labeledPromise.label}) resolved with result: ${result}`);
-                return { label: labeledPromise.label, result: result };
-            });
-        }))
-            .then((results) => {
-                // Log each promise result
-                results.forEach(res => {
-                    console.log(`Result of ${res.label}: ${res.result}`);
-                });
-    
-                // Check if any of the promises return false
-                var allPromisesPassed = results.every(res => res.result === true);
-                
-                if (!allPromisesPassed) {
-                    submitButton.disabled = true;
-                    console.log(`Running jsEnableBuySubmitButton()... Submit button disabled.`);
-                } else {
-                    // All validations passed
-                    console.log(`Running jsEnableBuySubmitButton()... All validation checks passed, enabling submit button.`);
-                    submitButton.disabled = false;
-                }
-            }).catch((error) => {
-                // Handle errors if any of the Promises reject
-                console.error(`Running jsEnableBuySubmitButton()... Error is: ${error}.`);
-                submitButton.disabled = true;
-            });
+        // Initially disable submit to prevent premature submissions
+        submitButton.disabled = true;
+
+        if (symbolValidationPassed && sharesValidationPassed) {
+            console.log('Enabling submit button.');
+            submitButton.disabled = false;
+        } else {
+            console.log('Disabling submit button due to failed or incomplete validation.');
+            submitButton.disabled = true;
+        }
     }
 
     

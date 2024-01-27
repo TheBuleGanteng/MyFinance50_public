@@ -5,12 +5,17 @@
 {% endblock %}
 
 {% block main %}
+
+<!-- link to index_detail -->
 <div class='row' style='margin-bottom: 20px;'>
     <div class='col-sm-4 col-md-3 col-lg-2'>
         <a href="{{ url_for('index_detail') }}" class='btn btn-primary w-100'>Switch to detailed view</a>
     </div>    
 </div>
-<h2>{{ username }}'s Portfolio</h2>
+<!-- /link to index_detail -->
+
+<h2>{{ user.username }}'s Portfolio</h2>
+
 <table>
     <thead>
         <tr>
@@ -23,13 +28,12 @@
     </thead>
     <tbody>
         <!-- Below are the values that have been passed in from app.py in the /quote function -->
-        {% for symbol in portfolio %}
+        {% for symbol, data in portfolio._portfolio_data.items() %}
             <tr>
-                <td>{{ portfolio[symbol]["symbol"] }}</td>
-                <td>{{ portfolio[symbol]["summed_txn_shares"] }}</td>
-                <td>{{ portfolio[symbol]["current_price"] | usd }}</td>
-                <td>{{ portfolio[symbol]["summed_txn_value"] | usd }}</td>
-
+                <td>{{ symbol }}</td>
+                <td>{{ data['shares']  }}</td>
+                <td>{{ data['market_value_per_share'] | usd }}</td>
+                <td>{{ data['market_value_total'] | usd }}</td>
             </tr>
         {% endfor %}
             <tr>
@@ -37,14 +41,14 @@
                 <td>Cash</td>
                 <td>-</td>
                 <td>-</td>
-                <td>{{ cash | usd }}</td>
+                <td>{{ portfolio.cash | usd }}</td>
                 </b>
             </td>
             <tr style="font-weight:bold">
                 <td>Total Portfolio</td>
                 <td>-</td>
                 <td>-</td>
-                <td>{{ total_portfolio | usd }}</td>
+                <td>{{ portfolio.portfolio_market_value_incl_cash | usd }}</td>
             </td>
 
         </tr>

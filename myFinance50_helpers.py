@@ -48,8 +48,7 @@ def apology(message, code=400):
 # Pull company data via FMP API
 def company_data(symbol, fmp_key):
     print(f'running get_stock_info(symbol): ... symbol is: { symbol }')
-    print(f'running get_stock_info(symbol): ... fmp_key is: { fmp_key }')
-    
+        
     try:
         limit = 1
         response = requests.get(f'https://financialmodelingprep.com/api/v3/profile/{symbol}?apikey={fmp_key}')       
@@ -264,9 +263,12 @@ def process_user_transactions(user):
     return portfolio
 
 
+# Set project name (used in emails)
+project_name = 'myFinance50'
+
+
 # Send emails
-def send_email(body, recipient):
-    
+def send_email(body, recipient):    
     print(f'running send_email ... body is: {body}')
     
     # Load service account credentials
@@ -300,6 +302,7 @@ def update_listings(fmp_key):
     with current_app.app_context():
         url = f'https://financialmodelingprep.com/api/v3/available-traded/list?apikey={fmp_key}'
         response = requests.get(url)
+        print("running update_listings ... PINGING API")
         
         # If the response is not problematic, do the following..
         if response.status_code == 200:
