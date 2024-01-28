@@ -148,7 +148,7 @@ def create_app(config_name=None):
     @login_required
     def buy():
         print(f'running /buy ...  starting /buy ')
-        print(f'running /buy... database URL is: { os.path.abspath("finance.sqlite") }')
+        print(f'running /bcuy... database URL is: { os.path.abspath("finance.sqlite") }')
         print(f'running /buy ... session.get(user) is: { session.get("user", None) }')
         print(f'running /buy ... CSRF token is: { session.get("csrf_token", None) }')
 
