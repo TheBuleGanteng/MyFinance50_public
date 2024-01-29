@@ -6,7 +6,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app import create_app
-from myFinance50_helpers import update_listings, fmp_key
+from myFinance50_helpers import purge_unconfirmed_accounts
 
 
 # Can pass an argument to create_app (testing, development, etc.) if desired.
@@ -15,7 +15,7 @@ app = create_app()
 
 def run_scheduled_task():
     with app.app_context():
-        update_listings(fmp_key)
+        purge_unconfirmed_accounts()
 
 if __name__ == '__main__':
     run_scheduled_task()

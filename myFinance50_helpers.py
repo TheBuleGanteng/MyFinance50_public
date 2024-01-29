@@ -29,6 +29,22 @@ from flask import redirect, render_template, session
 from functools import wraps
 
 
+# Count API pings per day (to use, simply call increment_ping(). You can then print last_pint[pings])
+last_ping = { # Global variable to store the counter
+    'pings': 0,
+    'timestamp': datetime.now()
+}
+
+def increment_ping(): # Function to increment the counter
+    global last_ping
+    if datetime.now().date() != last_ping['timestamp'].date():
+        last_ping['pings'] = 0
+        
+    last_ping['pings'] += 1
+    last_ping['timestamp'] = datetime.now()
+    print(f'PING COUNTER: {last_ping["pings"]}')
+
+
 # Apology (CS50 legacy)
 def apology(message, code=400):
     """Render message as an apology to user."""
@@ -52,6 +68,7 @@ def company_data(symbol, fmp_key):
     try:
         limit = 1
         response = requests.get(f'https://financialmodelingprep.com/api/v3/profile/{symbol}?apikey={fmp_key}')       
+        increment_ping()
         print(f'running get_stock_info(symbol): ... response is: { response }')
         data = response.json()
         #print(f'running get_stock_info(symbol): ... data is: { data }')
@@ -267,6 +284,19 @@ def process_user_transactions(user):
 project_name = 'myFinance50'
 
 
+# Purge unconfirmed accounts
+def purge_unconfirmed_accounts():
+    print(f'running purge_unconfirmed_accounts ... started: { datetime.now() }')
+    
+    token_validity = os.getenv('MAX_TOKEN_AGE_SECONDS')
+    cutoff_time = datetime.now() - timedelta(seconds=token_validity)
+
+    unconfirmed_accounts = db.session.query(User).filter(User.confirmed =='No', User.created < cutoff_time).delete()
+    print(f'running purge_unconfirmed_accounts ... unconfirmed_accounts is: { unconfirmed_accounts }')
+    db.session.commit
+    print(f'running purge_unconfirmed_accounts ... completed: { datetime.now() }')
+
+
 # Send emails
 def send_email(body, recipient):    
     print(f'running send_email ... body is: {body}')
@@ -302,7 +332,8 @@ def update_listings(fmp_key):
     with current_app.app_context():
         url = f'https://financialmodelingprep.com/api/v3/available-traded/list?apikey={fmp_key}'
         response = requests.get(url)
-        print("running update_listings ... PINGING API")
+        increment_ping()
+        print(f'running purge_unconfirmed_accounts ... started: { datetime.now() }')
         
         # If the response is not problematic, do the following..
         if response.status_code == 200:

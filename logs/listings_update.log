@@ -1,0 +1,6 @@
+running setup... SQLAlchemy Engine URL is sqlite:////home/thebuleganteng/MyFinance50_public/finance.sqlite
+running setup... db.create_all has run
+running update_listings ... PINGING API
+running setup... SQLAlchemy Engine URL is sqlite:////home/thebuleganteng/MyFinance50_public/finance.sqlite
+running setup... db.create_all has run
+running update_listings ... PINGING API
