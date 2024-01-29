@@ -372,10 +372,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // javascript for /sell ------------------------------------------
     if (window.location.href.includes('/sell')) {
-        console.log("Running myFinance50.js for /sell... ");
+        console.log('running myFinance50.js for /sell ... ');
         
         var symbol = document.getElementById('symbol');
         var shares = document.getElementById('shares');
+        var shares_value = document.getElementById('shares').value;
+
+        console.log(`running myFinance50.js for /sell ... symbol is: ${ symbol }`);
+        console.log(`running myFinance50.js for /sell ... shares is: ${ shares }`);
+        console.log(`running myFinance50.js for /sell ... shares_value is: ${ shares_value }`);
         
         // Debounce function
         function debounce(func, timeout = debounce_timeout){
@@ -387,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Function that wraps jsSymbolValidation with debouncing
-        function debounceSharesValidation() {
+        function debouncedSharesValidation() {
             jsSharesValidation().then(submit_enabled => {
                 jsEnableSellSubmitButton();
             });
@@ -395,15 +400,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (symbol) {
             document.getElementById('symbol').addEventListener('input', function() {
-                jsEnableSellSubmitButton();
+                // Trigger jsSharesValidation and jsEnableSellSubmitButton
+                jsSharesValidation().then(() => {
+                    jsEnableSellSubmitButton();
+                });
             });
         }
         
         if (shares) {
-            document.getElementById('shares').addEventListener('input', function() {
-                jsSharesValidation();
-                jsEnableSellSubmitButton();
-            });
+            document.getElementById('shares').addEventListener('input', debounce(debouncedSharesValidation, 500)); // Using the same timeout for consistency
         }
     }
     // /javascript for /sell ------------------------------------------
@@ -1134,52 +1139,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // Function description: Enables buy button at /sell
-    async function jsEnableSellSubmitButton() {
-        var symbol = document.getElementById('symbol');
+    function jsEnableSellSubmitButton() {
+        var symbol = document.getElementById('symbol').value.trim();
         var submitButton = document.getElementById('submit_button');
+        console.log(`running jsEnableSellSubmitButton ... sharesValidationPassed is: ${sharesValidationPassed}`);
+        console.log(`running jsEnableSellSubmitButton ... symbol is: ${symbol}`);
 
         // Initially disable submit to ensure button is disabled while promises are in progress
         submitButton.disabled = true;
 
-        // Create an array of promises with labels
-        var labeledPromises = [
-            { label: 'Shares Check', promise: jsSharesValidation() }
-        ];
-        console.log(`Running jsEnableSellSubmitButton()`)
-        console.log(`Running jsEnableSellSubmitButton()... CSRF Token is: ${csrfToken}`);
-
-        Promise.all(labeledPromises.map(labeledPromise => {
-            // Add a console.log statement before each promise
-            //console.log(`Running jsEnableSellSubmitButton()... Executing promise: ${labeledPromise.label}`);
-    
-            return labeledPromise.promise.then(result => {
-                // Add a console.log statement after each promise resolves
-                console.log(`Running jsEnableSellSubmitButton()... Promise (${labeledPromise.label}) resolved with result: ${result}`);
-                return { label: labeledPromise.label, result: result };
-            });
-        }))
-            .then((results) => {
-                // Log each promise result
-                results.forEach(res => {
-                    console.log(`Result of ${res.label}: ${res.result}`);
-                });
-    
-                // Check if any of the promises return false
-                var allPromisesPassed = results.every(res => res.result === true);
-                
-                if (!allPromisesPassed || symbol.value.trim === '') {
-                    submitButton.disabled = true;
-                    console.log(`Running jsEnableSellSubmitButton()... Submit button disabled.`);
-                } else {
-                    // All validations passed
-                    console.log(`Running jsEnableSellSubmitButton()... All validation checks passed, enabling submit button.`);
-                    submitButton.disabled = false;
-                }
-            }).catch((error) => {
-                // Handle errors if any of the Promises reject
-                console.error(`Running jsEnableSellSubmitButton()... Error is: ${error}.`);
-                submitButton.disabled = true;
-            });
+        if (symbol != '' && sharesValidationPassed) {
+            console.log('Enabling submit button.');
+            submitButton.disabled = false;
+        } else {
+            console.log('Disabling submit button due to failed or incomplete validation.');
+            submitButton.disabled = true;
+        }
     }
     
 });
