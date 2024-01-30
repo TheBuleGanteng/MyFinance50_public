@@ -4,3 +4,7 @@ running update_listings ... PINGING API
 running setup... SQLAlchemy Engine URL is sqlite:////home/thebuleganteng/MyFinance50_public/finance.sqlite
 running setup... db.create_all has run
 running update_listings ... PINGING API
+running setup... SQLAlchemy Engine URL is sqlite:////home/thebuleganteng/MyFinance50_public/finance.sqlite
+running setup... db.create_all has run
+PING COUNTER: 1
+running purge_unconfirmed_accounts ... started: 2024-01-30 09:05:05.349387

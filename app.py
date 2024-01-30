@@ -11,7 +11,7 @@ from forms.forms import BuyForm, LoginForm, PasswordChangeForm, PasswordResetReq
 import google.auth
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from myFinance50_helpers import apology, company_data, fmp_key, generate_nonce, generate_unique_token, login_required, lookup, send_email, percentage, Portfolio, project_name, process_user_transactions, update_listings, usd, verify_unique_token
+from myFinance50_helpers import apology, company_data, fmp_key, generate_nonce, generate_unique_token, login_required, lookup, percentage, Portfolio, process_sale, project_name, process_user_transactions, send_email, update_listings, usd, verify_unique_token
 import logging
 from logging.handlers import RotatingFileHandler
 import os
@@ -104,7 +104,7 @@ def create_app(config_name=None):
         # Step 2: Handle if no id (unlikely).
         if not user:
             print(f'running / ...  error 2.0: no user data found for session[user] of: { session["user"] }')
-            session['temp_flash'] = 'Error 2.0: User not found. Please log in again.'
+            session['temp_flash'] = 'Error: User not found. Please log in again.'
             return redirect(url_for('login'))
         print(f'running /...  user is: { user }')
 
@@ -179,20 +179,7 @@ def create_app(config_name=None):
                     print(f'running /buy ...  error 1.1.3 (check_valid_shares failed): check_valid_shares resulted with status: { result["status"] } and message: {  result["message"] }. Test failed. ')
                     flash(f'Error: { result["message"]} ')
                                                              
-                # Step 1.1.5: Update database
-                                # Add new entry into the transaction table to represent the share purchase.
-                new_transaction = Transaction(
-                    user_id = user.id, 
-                    type = transaction_type, 
-                    symbol = symbol, 
-                    shares = shares, 
-                    transaction_value_per_share = result['transaction_value_per_share'], 
-                    transaction_value_total= result['transaction_value_total']
-                )
-                db.session.add(new_transaction)
-                user.cash = user.cash - result['transaction_value_total']
-                db.session.commit()
-
+                
                 # Step 1.1.6: Flash success message and redirect to /
                 print(f'running /buy... purchase successful, redirecting to / ')
                 flash("Share purchase processed successfully!")
@@ -301,10 +288,11 @@ def create_app(config_name=None):
                 #print(f'running /check_valid_shares... user: {user} is trying to sell shares')
                 
                 # Step 4.1: Test if user has sufficient shares to sell
-                total_shares_owned = db.session.query(func.sum(Transaction.shares))\
-                    .filter(Transaction.user_id == session.get('user'), Transaction.symbol == user_input_symbol)\
-                    .scalar() or 0
-                #print(f'running /check_valid_shares ...  total shares of symbol: { user_input_symbol } is: { total_shares_owned } ')
+                total_shares_owned = db.session.query(func.sum(Transaction.shares_outstanding))\
+                    .filter(Transaction.user_id == session.get('user'), 
+                    Transaction.symbol == user_input_symbol,
+                    Transaction.type == 'BOT').scalar() or 0
+                print(f'running /check_valid_shares... total_shares_owned is: { total_shares_owned }')
                 
                 # Step 4.2: If user is trying to sell more shares than owned, test fails
                 if user_input_shares > total_shares_owned:
@@ -314,7 +302,7 @@ def create_app(config_name=None):
                 # Step 4.3: If user is trying to sell more shares than owned, test passes
                 else:
                     #print(f'running /check_valid_shares... user: {user} has sufficient shares to sell. Test passed')
-                    return {'status': 'success', 'message': 'You have sufficient shares to sell.', 'symbol_data': symbol_data, 'transaction_value_per_share': transaction_value_per_share, 'transaction_value_total' : transaction_value_total}
+                    return {'status': 'success', 'message': f'You will sell { user_input_shares } of your { total_shares_owned } shares in { user_input_symbol }', 'symbol_data': symbol_data, 'transaction_value_per_share': transaction_value_per_share, 'transaction_value_total' : transaction_value_total}
             
             # Step 5: Commence logic if the third argument passed to check_valid_shares function is neither buy nor sell (e.g. invalid input)
             else:
@@ -1194,23 +1182,9 @@ Team {project_name}'''
                         print(f'running /sell ...  error 1.1.3 (check_valid_shares failed): check_valid_shares resulted with status: { result["status"] } and message: {  result["message"] }. Test failed. ')
                         flash(f'Error: { result["message"]} ')
 
-                    # Step 3.1.1.4: Create entry for the transaction in the DB.
-                    new_transaction = Transaction(
-                        user_id = user.id,
-                        type = transaction_type,
-                        symbol = symbol,
-                        shares = shares,
-                        transaction_value_per_share = result['transaction_value_per_share'], 
-                        transaction_value_total= -result['transaction_value_total']
-                    )
-                    db.session.add(new_transaction)
-                    print(f'running /sell ...  user.cash before deducting transaction_value_total is: { user.cash } ')
-                    user.cash = user.cash + result['transaction_value_total']
-                    print(f'running /sell ...  user.cash after deducting transaction_value_total is: { user.cash } ')        
+                    # Step 3.1.1.4: Update the DB
+                    process_sale(symbol=symbol, shares=shares, transaction_type=transaction_type, user=user, result=result)
                     
-                    db.session.commit()
-                    print(f'running /sell ...  new_transaction added to DB is: { new_transaction } and user.cash is: { user.cash }')
-
                     # Step 3.1.1.5: Flash success message and redirect user to /.
                     print(f'running /sell ...  sale processed successfully. Redirecting user to / ')
                     flash("Share sale processed successfully!")

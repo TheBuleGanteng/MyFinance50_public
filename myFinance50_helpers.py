@@ -16,7 +16,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from itsdangerous import TimedSerializer as Serializer
 import mimetypes
-from models import Listing
+from models import Listing, Transaction
 import os
 import pytz
 import random
@@ -168,6 +168,67 @@ def percentage(value):
         return f"({-value*100:,.2f}%)"
 
 
+# Login required (CS50 legacy)
+def process_sale(symbol, shares, transaction_type, user, result):
+    print(f'running /process_sale() ...  for user { user.id } ...  function started')
+
+    # Initialize shares_to_fill variable to avoid confusion
+    shares_to_fill = shares
+    print(f'running /process_sale() ...  for user { user.id } ...  shares is: { shares }')
+
+
+    # We initialize a list of transaction changes to commit all at once once the loop below is complete
+    updated_transactions = []
+    print(f'running /process_sale() ...  for user { user.id } ...  updated_transactions list initialized')
+
+    # Set method of cycling closing out open positions relative to user accounting_method setting
+    transactions_to_iterate = user.transactions if user.accounting_method == 'FIFO' else reversed(user.transactions)
+    print(f'running /process_sale() ...  for user { user.id } ...  transactions_to_iterate is: { transactions_to_iterate }')
+
+    # Loop through each of the user's BOT transactions
+    for transaction in transactions_to_iterate:    
+        # Look at only the purchases
+        if transaction.symbol == symbol and transaction.type == 'BOT':
+            # If txn has enough shares, fill the order
+            if transaction.shares_outstanding > shares_to_fill:
+                transaction.shares_outstanding -= shares_to_fill 
+                shares_to_fill = 0
+                updated_transactions.append(transaction)
+                print(f'running /process_sale() ...  for user { user.id } ... sell order filled with transaction: { transaction }')
+                break
+            else:
+                transaction.shares_outstanding = 0
+                shares_to_fill -= transaction.shares_outstanding
+                updated_transactions.append(transaction)
+    
+    # Update the DB once the loop above is finished running
+    for transaction in updated_transactions:
+        db.session.add(transaction)
+    db.session.commit()
+    print(f'running /process_sale() ...  for user { user.id } ... updated_transactions updated to: { updated_transactions }')
+    
+    # Que up the new transaction to be added to the transactions table (shares_outstanding is omitted because this is a sale)
+    new_transaction = Transaction(
+                    user_id = user.id,
+                    type = transaction_type,
+                    symbol = symbol,
+                    shares = shares,
+                    transaction_value_per_share = result['transaction_value_per_share'], 
+                    transaction_value_total= -result['transaction_value_total']
+
+                )
+    db.session.add(new_transaction)
+    print(f'running /sell ...  user.cash before deducting transaction_value_total is: { user.cash } ')
+    
+    # Adjust cash and commit changes to DB
+    user.cash = user.cash + result['transaction_value_total']
+    print(f'running /sell ...  user.cash after deducting transaction_value_total is: { user.cash } ')        
+    
+    # Commit all the changes made via the loop and the creation of new_transaction
+    db.session.commit()
+    print(f'running /sell ...  new_transaction added to DB is: { new_transaction } and user.cash is: { user.cash }')
+
+
 # Defines a class called portfolio, used for /index and /index_detail
 class Portfolio:
 
@@ -178,13 +239,13 @@ class Portfolio:
         self.portfolio_total_shares = 0
         self.portfolio_cost_basis_per_share = 0
         self.portfolio_cost_basis_ex_cash = 0
-        self.portfolio_market_value_ex_cash = 0 
-        self.portfolio_gain_or_loss_usd_ex_cash = 0
-        self.portfolio_gain_or_loss_percent_ex_cash = 0 
+        self.portfolio_market_value_ex_cash_pre_tax = 0 
+        self.portfolio_gain_or_loss_usd_ex_cash_pre_tax = 0
+        self.portfolio_gain_or_loss_percent_ex_cash_pre_tax = 0 
         self.portfolio_cost_basis_incl_cash = 0
-        self.portfolio_market_value_incl_cash = 0
-        self.portfolio_gain_or_loss_usd_incl_cash = 0
-        self.portfolio_gain_or_loss_percent_incl_cash = 0
+        self.portfolio_market_value_incl_cash_pre_tax = 0
+        self.portfolio_gain_or_loss_usd_incl_cash_pre_tax = 0
+        self.portfolio_gain_or_loss_percent_incl_cash_pre_tax = 0
     
     # Adds the symbol to portfolio
     def add_symbol(self, symbol, data):
@@ -198,30 +259,43 @@ class Portfolio:
 # Creates an item of the portfolio class and populates it
 def process_user_transactions(user):
     print(f'running /process_user_transactions(user) ...  for user { user.id } ...  function started')
-
+    
     # Create an instance of the Portfolio class
     portfolio = Portfolio()
     print(f'running /process_user_transactions(user) ...  for user { user.id } ...  object created')
 
+    # Initiate tax rates and whether cap loss offset is turned on
+    tax_rate_STCG = user.tax_rate_STCG
+    tax_rate_LTCG = user.tax_rate_LTCG
+    tax_loss_offsets = 1 if user.tax_loss_offsets == 'Yes' else 0
+
+    # Query transactions DB to see if user has transactions
+    transactions = db.session.query(Transaction).filter_by(user_id= user.id).all()
+   
+    if not transactions:
+        return portfolio
+    
     # Step 3.2: Loop for each transaction record in user_data
     for transaction in user.transactions:
-        
         # Step 3.2.1: Establish symbol as the point on which rows will be consolidated
         symbol = transaction.symbol
-        
         # Step 3.2.1: If a symbol is new to the portfolio, initialize it to the portfolio
         if symbol not in portfolio._portfolio_data:
-            
             # Step 3.2.2: When a new symbol is encountered, set up a new row with the following columns
             portfolio.add_symbol(symbol, {
                 'symbol': symbol,
                 'shares': 0, 
                 'cost_basis_per_share' : 0,
                 'cost_basis_total' : 0,
-                'market_value_per_share': 0, 
-                'market_value_total': 0,
-                'gain_or_loss_usd': 0,
-                'gain_or_loss_percent': 0
+                'market_value_per_share': company_data(symbol, fmp_key)['price'], 
+                'market_value_total_pre_tax': 0,
+                'gain_or_loss_usd_pre_tax': 0,
+                'gain_or_loss_percent_pre_tax': 0,
+                'capital_gains_ST': 0,
+                'capital_gains_T': 0,
+                'market_value_total_post_tax': 0,
+                'gain_or_loss_usd_post_tax': 0,
+                'gain_or_loss_percent_post_tax': 0,
             })
         
         # Attach the new data fields listed above to portfolio.symbol
@@ -239,10 +313,10 @@ def process_user_transactions(user):
     for symbol, symbol_data in portfolio._portfolio_data.items():
         try:                
             symbol_data['cost_basis_per_share'] = symbol_data['cost_basis_total'] / symbol_data['shares'] 
-            symbol_data['market_value_per_share'] = company_data(symbol, fmp_key)['price']
-            symbol_data['market_value_total'] = symbol_data['shares'] * symbol_data['market_value_per_share']
-            symbol_data['gain_or_loss_usd'] = symbol_data['market_value_total'] - symbol_data['cost_basis_total']
-            symbol_data['gain_or_loss_percent'] = symbol_data['gain_or_loss_usd'] / symbol_data['cost_basis_total']
+            #symbol_data['market_value_per_share'] = company_data(symbol, fmp_key)['price']
+            symbol_data['market_value_total_pre_tax'] = symbol_data['shares'] * symbol_data['market_value_per_share']
+            symbol_data['gain_or_loss_usd_pre_tax'] = symbol_data['market_value_total_pre_tax'] - symbol_data['cost_basis_total']
+            symbol_data['gain_or_loss_percent_pre_tax'] = symbol_data['gain_or_loss_usd_pre_tax'] / symbol_data['cost_basis_total']
 
         except Exception as e:
             print(f'running /process_user_transactions(user) ...  Error 3.3: Error fetching price for {symbol}: {e}')
@@ -255,26 +329,26 @@ def process_user_transactions(user):
     for symbol, symbol_data in portfolio._portfolio_data.items():
         portfolio.portfolio_total_shares += symbol_data['shares']
         portfolio.portfolio_cost_basis_ex_cash += symbol_data['cost_basis_total']
-        portfolio.portfolio_market_value_ex_cash += symbol_data['market_value_total']
+        portfolio.portfolio_market_value_ex_cash_pre_tax += symbol_data['market_value_total_pre_tax']
 
     portfolio.portfolio_cost_basis_per_share += portfolio.portfolio_cost_basis_ex_cash / portfolio.portfolio_total_shares
-    portfolio.portfolio_gain_or_loss_usd_ex_cash = portfolio.portfolio_market_value_ex_cash - portfolio.portfolio_cost_basis_ex_cash
-    portfolio.portfolio_gain_or_loss_percent_ex_cash = portfolio.portfolio_gain_or_loss_usd_ex_cash / portfolio.portfolio_cost_basis_ex_cash
+    portfolio.portfolio_gain_or_loss_usd_ex_cash_pre_tax = portfolio.portfolio_market_value_ex_cash_pre_tax - portfolio.portfolio_cost_basis_ex_cash
+    portfolio.portfolio_gain_or_loss_percent_ex_cash_pre_tax = portfolio.portfolio_gain_or_loss_usd_ex_cash_pre_tax / portfolio.portfolio_cost_basis_ex_cash
     print(f'running /process_user_transactions(user) ...  for user { user.id } ... portfolio.portfolio_cost_basis_ex_cash is: { portfolio.portfolio_cost_basis_ex_cash }')
-    print(f'running /process_user_transactions(user) ...  for user { user.id } ...  portfolio.portfolio_market_value_ex_cash is: { portfolio.portfolio_market_value_ex_cash }')
-    print(f'running /process_user_transactions(user) ...  for user { user.id } ...  portfolio.portfolio_gain_or_loss_usd_ex_cash is: { portfolio.portfolio_gain_or_loss_usd_ex_cash }')
-    print(f'running /process_user_transactions(user) ...  for user { user.id } ...  portfolio.portfolio_gain_or_loss_percent_ex_cash is: { portfolio.portfolio_gain_or_loss_percent_ex_cash }')
+    print(f'running /process_user_transactions(user) ...  for user { user.id } ...  portfolio.portfolio_market_value_ex_cash_pre_tax is: { portfolio.portfolio_market_value_ex_cash_pre_tax }')
+    print(f'running /process_user_transactions(user) ...  for user { user.id } ...  portfolio.portfolio_gain_or_loss_usd_ex_cash_pre_tax is: { portfolio.portfolio_gain_or_loss_usd_ex_cash_pre_tax }')
+    print(f'running /process_user_transactions(user) ...  for user { user.id } ...  portfolio.portfolio_gain_or_loss_percent_ex_cash_pre_tax is: { portfolio.portfolio_gain_or_loss_percent_ex_cash_pre_tax }')
 
 
     # Step 3.5: Derive total portfolio cost basis, market value, and returns, all incl cash.
     portfolio.portfolio_cost_basis_incl_cash = portfolio.portfolio_cost_basis_ex_cash + portfolio.cash
-    portfolio.portfolio_market_value_incl_cash = portfolio.portfolio_market_value_ex_cash + portfolio.cash
-    portfolio.portfolio_gain_or_loss_usd_incl_cash = portfolio.portfolio_market_value_incl_cash - portfolio.portfolio_cost_basis_incl_cash
-    portfolio.portfolio_gain_or_loss_percent_incl_cash = portfolio.portfolio_gain_or_loss_usd_incl_cash / portfolio.portfolio_cost_basis_incl_cash
+    portfolio.portfolio_market_value_incl_cash_pre_tax = portfolio.portfolio_market_value_ex_cash_pre_tax + portfolio.cash
+    portfolio.portfolio_gain_or_loss_usd_incl_cash_pre_tax = portfolio.portfolio_market_value_incl_cash_pre_tax - portfolio.portfolio_cost_basis_incl_cash
+    portfolio.portfolio_gain_or_loss_percent_incl_cash_pre_tax = portfolio.portfolio_gain_or_loss_usd_incl_cash_pre_tax / portfolio.portfolio_cost_basis_incl_cash
     print(f'running /process_user_transactions(user) ...  for user { user.id } ... portfolio.portfolio_cost_basis_incl_cash is: { portfolio.portfolio_cost_basis_incl_cash }')
-    print(f'running /process_user_transactions(user) ...  for user { user.id } ...  portfolio.portfolio_market_value_incl_cash is: { portfolio.portfolio_market_value_incl_cash }')
-    print(f'running /process_user_transactions(user) ...  for user { user.id } ...  portfolio.portfolio_gain_or_loss_usd_incl_cash is: { portfolio.portfolio_gain_or_loss_usd_incl_cash }')
-    print(f'running /process_user_transactions(user) ...  for user { user.id } ...  portfolio.portfolio_gain_or_loss_percent_incl_cash is: { portfolio.portfolio_gain_or_loss_percent_incl_cash }')
+    print(f'running /process_user_transactions(user) ...  for user { user.id } ...  portfolio.portfolio_market_value_incl_cash_pre_tax is: { portfolio.portfolio_market_value_incl_cash_pre_tax }')
+    print(f'running /process_user_transactions(user) ...  for user { user.id } ...  portfolio.portfolio_gain_or_loss_usd_incl_cash_pre_tax is: { portfolio.portfolio_gain_or_loss_usd_incl_cash_pre_tax }')
+    print(f'running /process_user_transactions(user) ...  for user { user.id } ...  portfolio.portfolio_gain_or_loss_percent_incl_cash_pre_tax is: { portfolio.portfolio_gain_or_loss_percent_incl_cash_pre_tax }')
 
     # return the portfolio object
     return portfolio

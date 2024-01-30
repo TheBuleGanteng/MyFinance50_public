@@ -55,6 +55,7 @@ class Transaction(db.Model):
     shares = db.Column(db.Integer, nullable=False)
     transaction_value_per_share= db.Column(db.Float(precision=2), nullable=False)
     transaction_value_total= db.Column(db.Float(precision=2), nullable=False)
+    shares_outstanding = db.Column(db.Integer, nullable=True)
 
     # Converts the table to a dict, if needed (for example w/ API).
     def as_dict(self):

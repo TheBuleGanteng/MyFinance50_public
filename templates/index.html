@@ -5,54 +5,64 @@
 {% endblock %}
 
 {% block main %}
-
 <!-- link to index_detail -->
-<div class='row' style='margin-bottom: 20px;'>
-    <div class='col-sm-4 col-md-3 col-lg-2'>
-        <a href="{{ url_for('index_detail') }}" class='btn btn-primary w-100'>Switch to detailed view</a>
-    </div>    
+<div class='row' style='margin-bottom: 20px; align-text: start'>
+        <a href="{{ url_for('index_detail') }}" style="text-align: left;">Switch to detailed view</a>
 </div>
 <!-- /link to index_detail -->
 
 <h2>{{ user.username }}'s Portfolio</h2>
 
-<table>
-    <thead>
-        <tr>
-            <!-- Below are the headers for the table that shows stock info -->
-            <th>Symbol</th>
-            <th>Shares Owned</th>
-            <th>Current Price per Share</th>
-            <th>Current Holdings Value</th>
-        </tr>
-    </thead>
-    <tbody>
-        <!-- Below are the values that have been passed in from app.py in the /quote function -->
-        {% for symbol, data in portfolio._portfolio_data.items() %}
+<!-- Do the things below if the user has a portfolio -->
+{% if portfolio._portfolio_data.items() %}
+    <table>
+        <thead>
             <tr>
-                <td>{{ symbol }}</td>
-                <td>{{ data['shares']  }}</td>
-                <td>{{ data['market_value_per_share'] | usd }}</td>
-                <td>{{ data['market_value_total'] | usd }}</td>
+                <!-- Below are the headers for the table that shows stock info -->
+                <th>Symbol</th>
+                <th>Shares Owned</th>
+                <th>Current Price per Share</th>
+                <th>Current Holdings Value</th>
             </tr>
-        {% endfor %}
-            <tr>
-                <b>
-                <td>Cash</td>
-                <td>-</td>
-                <td>-</td>
-                <td>{{ portfolio.cash | usd }}</td>
-                </b>
-            </td>
-            <tr style="font-weight:bold">
-                <td>Total Portfolio</td>
-                <td>-</td>
-                <td>-</td>
-                <td>{{ portfolio.portfolio_market_value_incl_cash | usd }}</td>
-            </td>
+        </thead>
+        <tbody>
+            <!-- Below are the values that have been passed in from app.py in the /quote function -->
+            {% for symbol, data in portfolio._portfolio_data.items() %}
+                <tr>
+                    <td>{{ symbol }}</td>
+                    <td>{{ data['shares']  }}</td>
+                    <td>{{ data['market_value_per_share'] | usd }}</td>
+                    <td>{{ data['market_value_total_pre_tax'] | usd }}</td>
+                </tr>
+            {% endfor %}
+                <tr>
+                    <b>
+                    <td>Cash</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>{{ portfolio.cash | usd }}</td>
+                    </b>
+                </td>
+                <tr style="font-weight:bold">
+                    <td>Total Portfolio</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>{{ portfolio.portfolio_market_value_incl_cash_pre_tax | usd }}</td>
+                </td>
 
-        </tr>
-    </tbody>
-</table>
+            </tr>
+        </tbody>
+    </table>
+    <!-- /do the things below if the user has a portfolio -->
+
+{% else %}
+    <!-- do the things below if the user does not have a portfolio (e.g. a new user) -->
+    <div class='row'>
+        <a href="{{ url_for('quote') }}" class='btn btn-primary w-25' style='margin: 10px;'>Click to get quotes</a>
+        <a href="{{ url_for('buy') }}" class='btn btn-primary w-25' style='margin: 10px;'>Click to purchase stocks</a>
+    </div>
+    <!-- /do the things below if the user does not have a portfolio (e.g. a new user) -->
+{% endif %}
+
 {% endblock %}
 
