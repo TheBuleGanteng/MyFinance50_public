@@ -6,33 +6,151 @@
 
 {% block main %}
 <h2>Transaction History</h2>
-<table>
-    <thead>
-        <tr>
-            <!-- Below are the headers for the table that shows stock info -->
-            <th>Date / Time</th>
-            <th>Transaction ID</th>
-            <th>Share Symbol</th>
-            <th>Transaction Type</th>
-            <th>Shares</th>
-            <th>Transaction Value Per Share</th>
-            <th>Total Tranasction Value</th>
-        </tr>
-    </thead>
-    <tbody>
-        <!-- Below are the values that have been passed in from app.py in the /quote function -->
-        {% for transaction in history %}
+
+<!-- filter transactions container -->
+<div class="container-fluid ps-0">
+
+    <!-- form instructions -->
+    <div class="container-fluid container-instructions-start-bold mb-1">
+        Filter transactions by:
+    </div>
+    <!-- /form instructions -->
+
+    <!-- form -->
+    <form action='/history' method='post'>
+        {{ form.hidden_tag() }}
+    
+        <div class='row mb-2'>
+            
+            <!-- date_start -->
+            <div class='col-sm-4 col-md-3 col-lg-2' style='align-self: flex-start; text-align: start'>
+                <div class='row m-0 mb-1'>
+                    {{ form.date_start.label(class='form-label-start form-label-start-no-padding') }}
+                </div>
+                <div class='row m-0 mb-1'>
+                    {{ form.date_start(class='form-control', id='date_start', autocomplete='off') }}
+                    {% if form.date_start.errors %}
+                        <div class='text-danger mt-2'>
+                            {% for error in form.date_start.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- /date_start -->
+
+            <!-- date_end -->
+            <div class='col-sm-4 col-md-3 col-lg-2' style='align-self: flex-start; text-align: start'>
+                <div class='row m-0 mb-1'>
+                    {{ form.date_end.label(class='form-label-start form-label-start-no-padding') }}
+                </div>
+                <div class='row  m-0 mb-1'>
+                    {{ form.date_end(class='form-control', id='date_end', autocomplete='off') }}
+                    {% if form.date_end.errors %}
+                        <div class='text-danger mt-2'>
+                            {% for error in form.date_end.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- /date_end -->
+
+            <!-- transaction_type -->
+            <div class='col-sm-2' style='align-self: flex-start; text-align: start'>
+                <div class='row m-0 mb-1'>
+                    {{ form.transaction_type.label(class='form-label-start form-label-start-no-padding') }}
+                </div>
+                <div class='row m-0 mb-1'>
+                    {{ form.transaction_type(class='form-control', id='transaction_type', autocomplete='off') }}
+                    {% if form.transaction_type.errors %}
+                        <div class='text-danger mt-2'>
+                            {% for error in form.transaction_type.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- /transaction_type -->
+
+        </div>    
+        <div class='row mb-2'>
+                
+                <!-- clear filter button -->
+                <div class='col-sm-6 col-md-4 col-lg-3 mb-1'>
+                    <a href="{{ url_for('history') }}" class='btn btn-secondary w-100'>Clear filter</a>
+                </div>
+                <!-- /clear filter button -->
+
+                <!-- submit button -->
+                <div class='col-sm-6 col-md-4 col-lg-3 mb-1'>
+                    {{ form.submit_button(class='btn btn-success w-100', id='submit_button') }}
+                </div>
+                <!-- /submit button -->
+
+            </div>
+            
+        </div>
+
+    </div>
+    <!-- form -->
+
+</div>
+<!-- /filter transactions container -->
+
+            
+
+
+<div class="table-responsive-lg">
+    <table class="table table-hover">
+        <thead class='sticky-top'>
             <tr>
-                <td>{{ transaction.timestamp }}</td>
-                <td>{{ transaction.transaction_id }}</td>
-                <td>{{ transaction.symbol }}</td>
-                <td>{{ transaction.type }}</td>
-                <td>{{ transaction.shares }}</td>
-                <td>{{ transaction.transaction_value_per_share | usd }}</td>
-                <td>{{ transaction.transaction_value_total | usd }}</td>
+                <!-- Below are the headers for the table that shows stock info -->
+                <th>Date</th>
+                <th>Txn. ID</th>
+                <th>Symbol</th>
+                <th>Txn. Type</th>
+                <th>Shrs.</th>
+                <th>Txn. value per shr.</th>
+                <th>Total txn. value</th>
+                <th>Cap. gains, pre-tax</th>
+                <th>Cap. gains tax (offset)</th>
+                <th>Cap. gains, post-tax</th>
             </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            <!-- Below are the values that have been passed in from app.py in the /quote function -->
+            {% for transaction in history %}
+                <tr>
+                    <td>{{ transaction.timestamp | date_time }}</td>
+                    <td>{{ transaction.transaction_id }}</td>
+                    <td>{{ transaction.symbol }}</td>
+                    <td>{{ transaction.type }}</td>
+                    <td>{{ transaction.transaction_shares }}</td>
+                    <td>{{ transaction.transaction_value_per_share | usd }}</td>
+                    <td>{{ transaction.transaction_value_total | usd }}</td>
+                    {% if transaction.type == 'BOT' %}
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    {% else %}
+                    <td>{{ (transaction.LTCG + transaction.STCG) | usd }}</td>
+                    <td>{{ (transaction.LTCG_tax + transaction.STCG_tax) | usd }}</td>
+                    <td>
+                        {% if (transaction.LTCG_tax + transaction.STCG_tax) > 0 %}
+                            {{ (transaction.transaction_value_total - (transaction.LTCG_tax + transaction.STCG_tax)) | usd }}
+                        {% else %}
+                            {{ transaction.transaction_value_total | usd}} 
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}
 

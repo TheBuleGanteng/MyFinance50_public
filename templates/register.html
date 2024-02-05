@@ -195,17 +195,28 @@
             Accounting and tax information
         </div>
         <hr>
-    <!-- /section header: Accounting and tax info -->
-
-    <!-- section header: Accounting and tax info -->
-    <div class='container-fluid ps-0 mb-1'>
-        <div class='container-fluid container-instructions-start-bold mb-0 mt-4' style='font-style: italic'>
-            Accounting and tax information
-        </div>
-        <hr>
     </div>
     <!-- /section header: Accounting and tax info -->
 
+    <!-- cash_initial -->
+    <div class='user_input_registration row'>
+        <div class='col-sm-2' style='align-self: flex-start; text-align: start'>
+            {{ form.cash_initial.label(class='form-label-start-req-bold') }}
+        </div>
+        <div class='col-sm-8 col-md-6 col-lg-4'>
+            {{ form.cash_initial(class='form-control', id='cash_initial', autocomplete='off', placeholder='$10,000') }}
+            {% if form.cash_initial.errors %}
+                <div class='text-danger mt-2'>
+                    {% for error in form.cash_initial.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <!-- /cash_initial -->
+    
+    
     <!-- accounting_method -->
     <div class='user_input_registration row'>        
         {{ form.accounting_method.label(class='col-sm-2 form-label-start-bold') }}
@@ -213,7 +224,7 @@
             {{ form.accounting_method(class='form-control', id='accounting_method') }}
         </div>
         <div class='col-sm-2 mt-2'>
-            <i class="fas fa-question-circle ml-2" data-toggle="tooltip" title='"FIFO" (first-in, first-out) means that when someone sells a given amount of shares in a company, the oldest shares are assumed to be the first sold. This is the policy followed by most tax authorities.'></i>
+            <i class="fas fa-question-circle ml-2" data-bs-toggle="tooltip" data-bs-placement="top" title='"FIFO" (first-in, first-out) means that when someone sells a given amount of shares in a company, the oldest shares are assumed to be the first sold. This is the policy followed by most tax authorities.'></i>
         <div>
         </div>
             {% if form.accounting_method.errors %}
@@ -234,7 +245,7 @@
             {{ form.tax_loss_offsets(class='form-control', id='tax_loss_offsets') }}
         </div>
         <div class='col-sm-2 mt-2'>
-            <i class="fas fa-question-circle ml-2" data-toggle="tooltip" title='"On" means that within a given year when taxes are calculated, losses on share sales offset gains on share sales. Followed by most tax authorities.'></i>
+            <i class="fas fa-question-circle ml-2" data-bs-toggle="tooltip" data-bs-placement="top" title='"On" means that within a given year when taxes are calculated, losses on share sales offset gains on share sales. Followed by most tax authorities.'></i>
         <div>
             {% if form.tax_loss_offsets.errors %}
                 <div class='text-danger'>

@@ -170,6 +170,15 @@
     </div>
     <!-- /section header: Accounting and tax info -->
 
+    <!-- cash_intial -->
+    <div class='user_input_registration row'>
+        {{ form.cash_initial.label(class='col-sm-2 form-label-start-bold') }}
+        <div class='col-sm-8 col-md-6 col-lg-4'>
+            {{ form.cash_initial(class='form-control', id='cash_initial', readonly=True) }}
+        </div>
+    </div>
+    <!-- /cash_initial -->
+    
     <!-- accounting_method -->
     <div class='user_input_registration row'>        
         {{ form.accounting_method.label(class='col-sm-2 form-label-start-bold') }}
@@ -177,7 +186,7 @@
             {{ form.accounting_method(class='form-control', id='accounting_method') }}
         </div>
         <div class='col-sm-2 mt-2'>
-            <i class="fas fa-question-circle ml-2" data-toggle="tooltip" title='"FIFO" (first-in, first-out) means that when someone sells a given amount of shares in a company, the oldest shares are assumed to be the first sold. This is the policy followed by most tax authorities.'></i>
+            <i class="fas fa-question-circle ml-2" data-bs-toggle="tooltip" data-bs-placement="top" title='"FIFO" (first-in, first-out) means that when someone sells a given amount of shares in a company, the oldest shares are assumed to be the first sold. This is the policy followed by most tax authorities.'></i>
         <div>
         </div>
             {% if form.accounting_method.errors %}
@@ -198,7 +207,7 @@
             {{ form.tax_loss_offsets(class='form-control', id='tax_loss_offsets') }}
         </div>
         <div class='col-sm-2 mt-2'>
-            <i class="fas fa-question-circle ml-2" data-toggle="tooltip" title='"On" means that within a given year when taxes are calculated, losses on share sales offset gains on share sales. Followed by most tax authorities.'></i>
+            <i class="fas fa-question-circle ml-2" data-bs-toggle="tooltip" data-bs-placement="top" title='"On" means that within a given year when taxes are calculated, losses on share sales offset gains on share sales. Followed by most tax authorities.'></i>
         <div>
             {% if form.tax_loss_offsets.errors %}
                 <div class='text-danger'>
@@ -220,7 +229,7 @@
             </span>
             {{ form.tax_rate_STCG }}
             {{ form.tax_rate_STCG_hidden(id='tax_rate_STCG_hidden') }}
-            <i class="fas fa-question-circle ml-2" data-toggle="tooltip" title='The tax applied to profits on share sales when the holding period was < 365 days.'></i>
+            <i class="fas fa-question-circle ml-2" data-bs-toggle="tooltip" data-bs-placement="top" title='The tax applied to profits on share sales when the holding period was < 365 days.'></i>
             {% if form.tax_rate_STCG.errors %}
                 <div class='text-danger'>
                     {% for error in form.tax_rate_STCG.errors %}
@@ -241,7 +250,7 @@
             </span>
             {{ form.tax_rate_LTCG }}
             {{ form.tax_rate_LTCG_hidden(id='tax_rate_LTCG_hidden') }}
-            <i class="fas fa-question-circle ml-2" data-toggle="tooltip" title='The tax applied to profits on share sales when the holding period was => 365 days.'></i>
+            <i class="fas fa-question-circle ml-2" data-bs-toggle="tooltip" data-bs-placement="top" title='The tax applied to profits on share sales when the holding period was => 365 days.'></i>
             {% if form.tax_rate_LTCG.errors %}
                 <div class='text-danger'>
                     {% for error in form.tax_rate_LTCG.errors %}

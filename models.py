@@ -25,6 +25,7 @@ class User(db.Model):
     confirmed = db.Column(db.String, nullable=False, default = 'No')
     created = db.Column(db.DateTime, nullable=False, default=datetime.now)
     hash = db.Column(db.String, nullable=False)
+    cash_initial = db.Column(db.Float(precision=2), nullable=False, default= 10000.00)
     cash = db.Column(db.Float(precision=2), nullable=False, default= 10000.00)
     accounting_method = db.Column(db.String, nullable=False, default='FIFO')
     tax_loss_offsets = db.Column(db.String, nullable=False, default='On')
@@ -52,10 +53,14 @@ class Transaction(db.Model):
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.now)
     type = db.Column(db.String, nullable=False)
     symbol = db.Column(db.String, nullable=False)
-    shares = db.Column(db.Integer, nullable=False)
+    transaction_shares = db.Column(db.Integer, nullable=False)
+    shares_outstanding = db.Column(db.Integer, nullable=True)
     transaction_value_per_share= db.Column(db.Float(precision=2), nullable=False)
     transaction_value_total= db.Column(db.Float(precision=2), nullable=False)
-    shares_outstanding = db.Column(db.Integer, nullable=True)
+    STCG = db.Column(db.Float(precision=2), nullable=True)
+    LTCG = db.Column(db.Float(precision=2), nullable=True)
+    STCG_tax = db.Column(db.Float(precision=2), nullable=True)
+    LTCG_tax = db.Column(db.Float(precision=2), nullable=True)
 
     # Converts the table to a dict, if needed (for example w/ API).
     def as_dict(self):

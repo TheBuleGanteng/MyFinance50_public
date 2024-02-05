@@ -5,34 +5,50 @@
 {% endblock %}
 
 {% block main %}
-    <form action="/quote" method="post">
-        {{ form.hidden_tag() }}
 
-        <!-- symbol -->
-        <div class="mb-3">
-            {{ form.symbol(class='form-control mx-auto w-auto', id='symbol', autocomplete='off', autofocus=True, placeholder='Stock symbol') }}
+<!-- Instructional text -->
+<div class="container-fluid ps-0 mb-1">
+    <div class="container-fluid container-instructions-start-bold">
+        Enter a stock symbol or company name below to search for company data.
+    </div>
+    <div class="container-fluid container-instructions-start">
+        Required fields
+    </div>
+</div>
+<!-- /Instructional text -->
+
+<!-- form -->
+<form action="/quote" method="post">
+{{ form.hidden_tag() }}
+
+    <!-- symbol -->
+    <div class='user_input_registration row'>
+        <div class='col-sm-2' style='align-self: flex-start; text-align: start'>
+            {{ form.symbol.label(class='form-label-start-req-bold') }}
         </div>
-        <div class='mb-3'>
+        <div class='col-sm-8 col-md-6 col-lg-4'>
+            {{ form.symbol(class='form-control', id='symbol', autocomplete='off', autofocus=True, placeholder='Symbol') }}
             {% if form.symbol.errors %}
-                <div class='text-danger'>
-                    {% for error in form.symbol.errors %}
+                <div class='text-danger mt-2'>
+                    {% for error in form.sybol.errors %}
                         {{ error }}
                     {% endfor %}
                 </div>
             {% endif %}
         </div>
-        <!-- /symbol -->
+    </div>
+    <!-- /symbol -->    
 
-        <!-- cancel and submit buttons-->
-        <div class='row' style='margin-top: 20px; margin-bottom: 10px;'>
-            <div class='col-sm-6 col-md-4 col-lg-3'>
-                <a href="{{ url_for('index') }}" class='btn btn-secondary w-100'>Back</a>
-            </div>
-            <div class='col-sm-6 col-md-4 col-lg-3'>
-                {{ form.submit_button(class='btn btn-success w-100', id='submit_button', disabled=False) }}
-            </div>
+    <!-- cancel and submit buttons-->
+    <div class='row' style='margin-top: 20px; margin-bottom: 10px;'>
+        <div class='col-sm-6 col-md-4 col-lg-3'>
+            <a href="{{ url_for('index') }}" class='btn btn-secondary w-100'>Back</a>
         </div>
-        <!-- /cancel and submit buttons-->
-    
-    </form>
+        <div class='col-sm-6 col-md-4 col-lg-3'>
+            {{ form.submit_button(class='btn btn-success w-100', id='submit_button', disabled=False) }}
+        </div>
+    </div>
+    <!-- /cancel and submit buttons-->
+
+</form>
 {% endblock %}

@@ -1,22 +1,30 @@
+// Global CSRF Token Variable
+let csrfToken = ''; 
+let csrfTokenInput = document.querySelector('input[name="csrf_token"]');
+if (csrfTokenInput) {
+    csrfToken = csrfTokenInput.value;
+    console.log("CSRF Token set:", csrfToken);
+} else {
+    console.log("CSRF token input not found.");
+}
+
+
+window.addEventListener('load', function() {
+    var spinner = document.getElementById('loadingSpinner');
+    if (spinner) {
+        spinner.classList.remove('d-flex');
+        spinner.style.display = 'none';
+    } else {
+        console.log("Spinner element not found.");
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM content loaded in myFinance50.js.');
     console.log('this is a console.log from myFinance50.js....myFinance50.js loaded successfully');
     
-    // Security items -----------------------------------------------------------------------------------------
-    // Global CSRF Token Variable
-    let csrfToken = ''; 
-    let csrfTokenInput = document.querySelector('input[name="csrf_token"]');
-    if (csrfTokenInput) {
-        csrfToken = csrfTokenInput.value;
-        console.log("CSRF Token set:", csrfToken);
-    } else {
-        console.log("CSRF token input not found.");
-    }
-
-    
     
     // Declaration of global variables and functions------------------------------------------------------------
-    
     // buy
     window.jsSymbolValidation = jsSymbolValidation
     window.jsSharesValidation = jsSharesValidation
@@ -55,10 +63,14 @@ document.addEventListener('DOMContentLoaded', function() {
         initial_tax_rate_LTCG_value = parseFloat(document.getElementById('tax_rate_LTCG_value').innerText.replace('%', ''));
     }
 
+    // Allow for tooltip text to appear on any page where it is located. 
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
 
 
     // Determine sequence of JS functions for each page ------------------------------------------------------------
-
     // javascript for /buy ------------------------------------------
     if (window.location.href.includes('/buy')) {
         console.log("Running myFinance50.js for /buy... ");
@@ -281,6 +293,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 jsEnableProfileSubmitButton();
             });
         }
+
+        const buyForm = document.querySelector('form[action="/buy"]');
+        buyForm.addEventListener('submit', function (e) {
+            e.preventDefault(); // Prevent form from submitting
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmBuyModal'));
+            confirmModal.show();
+        });
+
+        const confirmBuyButton = document.getElementById('confirmBuyButton');
+        confirmBuyButton.addEventListener('click', function () {
+            buyForm.submit(); // Submit the form
+        });
     }
     // /javascript for /profile -----------------------------------------------
 
@@ -376,11 +400,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         var symbol = document.getElementById('symbol');
         var shares = document.getElementById('shares');
-        var shares_value = document.getElementById('shares').value;
-
-        console.log(`running myFinance50.js for /sell ... symbol is: ${ symbol }`);
-        console.log(`running myFinance50.js for /sell ... shares is: ${ shares }`);
-        console.log(`running myFinance50.js for /sell ... shares_value is: ${ shares_value }`);
         
         // Debounce function
         function debounce(func, timeout = debounce_timeout){
@@ -410,6 +429,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (shares) {
             document.getElementById('shares').addEventListener('input', debounce(debouncedSharesValidation, 500)); // Using the same timeout for consistency
         }
+
+        const sellForm = document.querySelector('form[action="/sell"]');
+        sellForm.addEventListener('submit', function (e) {
+            e.preventDefault(); // Prevent form from submitting
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmSellModal'));
+            confirmModal.show();
+        });
+
+        const confirmSellButton = document.getElementById('confirmSellButton');
+        confirmSellButton.addEventListener('click', function () {
+            sellForm.submit(); // Submit the form
+        });
     }
     // /javascript for /sell ------------------------------------------
 

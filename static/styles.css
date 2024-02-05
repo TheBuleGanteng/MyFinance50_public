@@ -27,18 +27,38 @@ nav .navbar-brand .green
 
 
 /* Additional CSS I've added */
+.colspan_td {
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: smaller;
+}
+
+.colspan_tr {
+  background-color:rgb(221, 237, 255);
+  font-style: italic;
+}
+
+
 table {
   border-collapse: collapse; /* Add this line to remove any space between borders */
   width: 100%;
   border: 3px solid #000000 !important; 
 }
 
+
 table th,
 table td {
     padding: 0.75rem;
     vertical-align: start;
     text-align: start;
-    border: 2px solid lightgray; /* Add this line */
+    border: 1.0px solid lightgray; /* Add this line */
+}
+
+.table-responsive-lg th {
+  position: sticky;
+  top: 0;
+  background-color: rgb(221, 237, 255); /* Match the table background */
+  z-index: 10; /* Ensure it sits above other content */
 }
 
 th {
@@ -169,6 +189,10 @@ select.mySelect option {
 
 .form-label-start {
   text-align: start;
+}
+
+.form-label-start-no-padding {
+  padding: 0 !important;
 }
 
 .form-label-start-bold {
@@ -515,7 +539,12 @@ th {
   text-align: -webkit-match-parent;
 }
 
-thead,
+thead {
+  background-color:rgb(221, 237, 255);
+  border-bottom: 1.5px solid #000000; /* CUSTOMIZED - WAS GROUPED WITH TBODY, TFOOT, ETC BELOW */
+}
+
+
 tbody,
 tfoot,
 tr,
@@ -4649,10 +4678,12 @@ textarea.form-control-lg {
   align-items: center;
   width: 100%;
   padding: 1rem 1.25rem;
+  padding-left: 10px;
   font-size: 1rem;
+  font-weight: bold; /* CUSTOMIZATION */
   color: #212529;
   text-align: left;
-  background-color: #fff;
+  background-color: #e3e3e3; /* CUSTOMIZATION */
   border: 0;
   border-radius: 0;
   overflow-anchor: none;

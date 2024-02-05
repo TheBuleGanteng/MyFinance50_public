@@ -1,20 +1,33 @@
 from Custom_FlaskWtf_Filters_and_Validators.filters_generic import strip_filter, lowercase_filter, uppercase_filter
 from Custom_FlaskWtf_Filters_and_Validators.validators_generic import allowed_chars_validator, is_positive_validator, not_equal_to_validator, optional_if_date_validator, pw_strength_validator
+from datetime import datetime
 from flask_wtf import FlaskForm
-from wtforms import DateField, DecimalRangeField, EmailField, HiddenField, IntegerField, PasswordField, SelectField, StringField, SubmitField, ValidationError
+from wtforms import DateField, DecimalRangeField, EmailField, FloatField, HiddenField, IntegerField, PasswordField, SelectField, StringField, SubmitField, ValidationError
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, Regexp, StopValidation
 
-
-class LoginForm(FlaskForm):
-    email = StringField('Email', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator])
-    password = PasswordField('Password', filters=[strip_filter], validators=[DataRequired()])
-    submit_button = SubmitField('Log In')
 
 class BuyForm(FlaskForm):
     transaction_type = HiddenField(default='BOT')
     symbol = StringField('Stock symbol', filters=[strip_filter, uppercase_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
     shares = IntegerField('Number of shares', validators=[DataRequired(), is_positive_validator], render_kw={'required': True})
     submit_button = SubmitField('Buy')
+
+class FilterTransactionHistory(FlaskForm):
+    transaction_type = SelectField(
+    'Type:',choices=[('', 'All'), ('BOT', 'Buy'), ('SLD', 'Sell')], coerce=str, validators=[Optional()], default='')
+    date_start = DateField('Start date:', format='%Y-%m-%d', validators=[Optional()])
+    date_end = DateField('End date:', format='%Y-%m-%d', validators=[Optional()])
+    submit_button = SubmitField('Apply filter')
+
+    def validate_end_time(self, field):
+        if field.data <= form.start_time.data:
+            raise ValidationError("End time must be after start time.")
+
+class LoginForm(FlaskForm):
+    email = StringField('Email', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator])
+    password = PasswordField('Password', filters=[strip_filter], validators=[DataRequired()])
+    submit_button = SubmitField('Log In')
+
 
 class PasswordChangeForm(FlaskForm):
     email = EmailField('Email address:', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator], render_kw={'required': True, 'type': 'email'})
@@ -40,6 +53,7 @@ class ProfileForm(FlaskForm):
     username = StringField('Updated username:', filters=[strip_filter], validators=[Optional(), allowed_chars_validator])
     email = EmailField('Email address:', render_kw={'readonly': True}) 
     created = DateField('Registered since:', format='%Y-%m-%d', render_kw={'readonly': True})
+    cash_initial = FloatField('Initial deposit:', render_kw={'readonly': True})
     accounting_method = SelectField('Accounting method:', validators=[Optional()], choices=[('FIFO', 'FIFO'), ('LIFO', 'LIFO')], coerce=str)
     tax_loss_offsets = SelectField('Tax loss offsets:', validators=[Optional()], choices=[('On', 'On'), ('Off', 'Off')], coerce=str)
     tax_rate_STCG = DecimalRangeField('Tax rate, short-term capital gains:', validators=[Optional()], default=30.00, render_kw={"min": 0, "max": 35, "step": 0.50})
@@ -49,7 +63,7 @@ class ProfileForm(FlaskForm):
     submit_button = SubmitField('Submit')
 
 class QuoteForm(FlaskForm):
-    symbol = StringField('Stock symbol', filters=[strip_filter, uppercase_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
+    symbol = StringField('Stock symbol:', filters=[strip_filter, uppercase_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
     submit_button = SubmitField('Submit')
 
 class RegisterForm(FlaskForm):
@@ -59,6 +73,7 @@ class RegisterForm(FlaskForm):
     username = StringField('Username:', filters=[strip_filter], validators=[DataRequired(), allowed_chars_validator], render_kw={'required': True})
     password = PasswordField('Password:', filters=[strip_filter], validators=[DataRequired(), pw_strength_validator])
     password_confirmation = PasswordField('Password confirmation:', filters=[strip_filter], validators=[DataRequired(), EqualTo('password', message='New password confirmation must match the new password.')], render_kw={'required': True})
+    cash_initial = StringField('Initial deposit (USD):', validators=[DataRequired()], render_kw={'required': True})
     accounting_method = SelectField('Accounting method:', validators=[Optional()], choices=[('FIFO', 'FIFO'), ('LIFO', 'LIFO')], coerce=str)
     tax_loss_offsets = SelectField('Tax loss offsets:', validators=[Optional()], choices=[('On', 'On'), ('Off', 'Off')], coerce=str)
     tax_rate_STCG = DecimalRangeField('Tax rate, short-term capital gains:', validators=[Optional()], default=30.00, render_kw={"min": 0, "max": 35, "step": 0.50})

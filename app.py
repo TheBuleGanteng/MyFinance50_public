@@ -7,11 +7,11 @@ from flask import Flask, flash, jsonify, make_response, redirect, render_templat
 from flask_mail import Mail, Message
 from flask_migrate import Migrate
 from flask_session import Session
-from forms.forms import BuyForm, LoginForm, PasswordChangeForm, PasswordResetRequestForm, PasswordResetRequestNewForm, ProfileForm, QuoteForm, RegisterForm, SellForm
+from forms.forms import BuyForm, FilterTransactionHistory, LoginForm, PasswordChangeForm, PasswordResetRequestForm, PasswordResetRequestNewForm, ProfileForm, QuoteForm, RegisterForm, SellForm
 import google.auth
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from myFinance50_helpers import apology, company_data, fmp_key, generate_nonce, generate_unique_token, login_required, lookup, percentage, Portfolio, process_sale, project_name, process_user_transactions, send_email, update_listings, usd, verify_unique_token
+from helpers import apology, company_data, date_time, fmp_key, generate_nonce, generate_unique_token, login_required, lookup, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, send_email, update_listings, usd, verify_unique_token
 import logging
 from logging.handlers import RotatingFileHandler
 import os
@@ -58,6 +58,7 @@ def create_app(config_name=None):
     # Custom filter
     app.jinja_env.filters['usd'] = usd
     app.jinja_env.filters['percentage'] = percentage
+    app.jinja_env.filters['date_time'] = date_time
 
     # Enable flask-migrate (allows db changes via models.py)
     migrate = Migrate(app, db)
@@ -179,7 +180,9 @@ def create_app(config_name=None):
                     print(f'running /buy ...  error 1.1.3 (check_valid_shares failed): check_valid_shares resulted with status: { result["status"] } and message: {  result["message"] }. Test failed. ')
                     flash(f'Error: { result["message"]} ')
                                                              
-                
+                # Step 1.1.4: Handle if check_valid_shares(symbol, shares) failed
+                process_purchase(symbol=symbol, shares=shares, user=user, result=result)
+
                 # Step 1.1.6: Flash success message and redirect to /
                 print(f'running /buy... purchase successful, redirecting to / ')
                 flash("Share purchase processed successfully!")
@@ -416,20 +419,69 @@ def create_app(config_name=None):
 
 # -----------------------------------------------------------------------
 
-    @app.route("/history")
+    @app.route('/history', methods=['GET', 'POST'])
     @login_required
     def history():
-        print('running /history... route started ')
+        user = session.get('user')
+        print(f'running /history ...  user is: { user } starting /history  ')
+        print(f'running /history ... user is: { user } database URL is: { os.path.abspath("finance.sqlite") }')
+        print(f'running /history ... user is: { user } CSRF token is: { session.get("csrf_token", None) }')
 
-        # Pull the symbol and the total shares owned from the transactions database
-        history = db.session.query(Transaction).filter_by(user_id = session['user']).order_by(Transaction.timestamp.desc()).all()
-        print(f'running /history... history is: { history } ')
-        
-        for transaction in history:
-            print(f'running history... transaction timestamp is: { transaction.timestamp }')
+        form = FilterTransactionHistory()
 
-        # Render index.html and pass in the values in the portfolio pull and for cash.
-        return render_template("history.html", history=history)
+        history = db.session.query(Transaction).filter_by(user_id = session['user'])
+
+        # Handle submission via post
+        if request.method == 'POST':
+
+            # Handle submission via post + user input clears form validation
+            if form.validate_on_submit():
+                print(f'running /history ... user is: { user } submitted via post and user input passed form validation')
+
+                # Pull in data from form
+                try:
+                    date_start = form.date_start.data
+                    date_end = datetime.combine(form.date_end.data, datetime.min.time()) if form.date_start.data else None
+                    type = form.transaction_type.data
+                    print(f'running /history ... user is: { user }  date_start is: { date_start }')
+                    print(f'running /history ... user is: { user }  date_end is: { date_end }')
+                    print(f'running /history ... user is: { user }  type is: { type }')
+
+                    if date_start:
+                        history = history.filter(Transaction.timestamp >= datetime.combine(date_start, datetime.min.time()))
+                    if date_end:
+                        history = history.filter(Transaction.timestamp <= datetime.combine(date_end, datetime.max.time()))
+                    if type:
+                        history = history.filter(Transaction.type == type)
+
+                    history = history.order_by(Transaction.timestamp.desc()).all()
+                    return render_template('history.html', form=form, history=history)
+
+                # If can't pull in email address and password from DB, flash error and render password_change.html
+                except Exception as e:
+                    print(f'running /history ...  Flashing error and rendering history.html with no filters applied')
+                    flash(f'Error: Error {e}- please check your input and try again.')
+                    return render_template('history.html', form=form, history=history)
+            
+            # Handle submission via post + user input fails form validation
+            else:
+                print(f'Running /history ... Error (form validation errors), flashing message and redirecting user to /password_change')    
+                for field, errors in form.errors.items():
+                    print(f'Running /history ... erroring field is: {field}')
+                    for error in errors:
+                        print(f'Running /history ... erroring on this field is: { error }')
+                flash('Error: Invalid input. Please see the red text below for assistance.')
+                
+                # Render history.html and pass in the form and transaction history.
+                return render_template("history.html", form=form, history=history)
+
+        # Step 2: User arrived via GET
+        else:
+            print(f'running history... user is: { user, None } and arrived via GET')
+            
+            # Render history.html and pass in the form and transaction history.
+            return render_template("history.html", form=form, history=history)
+
 
 # -----------------------------------------------------------------------
 
@@ -782,7 +834,7 @@ Team {project_name}'''
 
             # Step 2.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
-                print(f'running /password_change ... User: { session["user"] } submitted via post and user input passed form validation')
+                print(f'running /profile ... User: { session["user"] } submitted via post and user input passed form validation')
 
                 # Step 2.1.1: Pull in data from form
                 try:
@@ -819,18 +871,17 @@ Team {project_name}'''
 
                     # Step 2.1.1.3: Query DB to get updated data
                     user = db.session.query(User).filter_by(id=session.get('user')).scalar()
-                    print(f'running /profile ... refreshed user object for user: { user }')
+                    print(f'running /profile ... refreshed user object for user is: { user }')
                     name_full = user.name_first+" "+user.name_last
                     form.name_full.data = name_full
                     form.username_old.data = user.username
                     form.email.data = user.email
                     form.created.data = user.created
+                    form.cash_initial.data = usd(user.cash_initial)
+                    print(f'running /profile ... usd(user.cash_initial) is: { usd(user.cash_initial) }')
                     form.accounting_method.data = user.accounting_method
                     form.tax_loss_offsets.data = user.tax_loss_offsets
-                    
                     form.tax_rate_STCG.data = user.tax_rate_STCG
-                    print(f'running /profile ... new value for user.tax_rate_STCG is: { user.tax_rate_STCG }')
-                    
                     form.tax_rate_LTCG.data = user.tax_rate_LTCG
                     
                     # Step 2.1.1.4: Flash success message and render profile.html
@@ -862,15 +913,12 @@ Team {project_name}'''
             form.username_old.data = user.username
             form.email.data = user.email
             form.created.data = user.created
+            form.cash_initial.data = usd(user.cash_initial)
             form.accounting_method.data = user.accounting_method
             form.tax_loss_offsets.data = user.tax_loss_offsets
             form.tax_rate_STCG.data = user.tax_rate_STCG
             form.tax_rate_LTCG.data = user.tax_rate_LTCG
-            print(f'running /password_change ... on loading page, tax_rate_STCG is: { user.tax_rate_STCG } ')
-            #print(f'running /password_change ... on loading page, tax_rate_STCG_value is: { form.tax_rate_STCG_value.data } ')
-            print(f'running /password_change ... on loading page, tax_rate_LTCG is: { user.tax_rate_LTCG } ')
-            #print(f'running /password_change ... on loading page, tax_rate_LTCG_value is: { form.tax_rate_LTCG_value.data } ')
-
+            
                 
             print(f'Running /profile ... user arrived via GET')
             return render_template('profile.html', form=form)
@@ -960,6 +1008,8 @@ Team {project_name}'''
                 username = form.username.data
                 email = form.email.data
                 password = form.password.data
+                cash_initial = form.cash_initial.data
+                cash = cash_initial
                 accounting_method = form.accounting_method.data
                 tax_loss_offsets = form.tax_loss_offsets.data
                 tax_rate_STCG = form.tax_rate_STCG.data
@@ -998,6 +1048,8 @@ Team {project_name}'''
                         email = email,
                         username = username, 
                         hash = generate_password_hash(password),
+                        cash_initial = cash_initial,
+                        cash = cash_initial,
                         accounting_method = accounting_method,
                         tax_loss_offsets = tax_loss_offsets,
                         tax_rate_STCG = tax_rate_STCG,
@@ -1171,7 +1223,7 @@ Team {project_name}'''
                     # Step 3.1.1.1: Pull data from form
                     symbol = form.symbol.data
                     shares = form.shares.data
-                    transaction_type = 'SLD'
+                    transaction_type = form.transaction_type.data
                     print(f'running /sell ... shares is: { shares }')
 
                     # Step 3.1.1.2: Retrieve from DB the shares owned in the specified symbol
@@ -1183,7 +1235,7 @@ Team {project_name}'''
                         flash(f'Error: { result["message"]} ')
 
                     # Step 3.1.1.4: Update the DB
-                    process_sale(symbol=symbol, shares=shares, transaction_type=transaction_type, user=user, result=result)
+                    process_sale(symbol=symbol, shares=shares, user=user, result=result)
                     
                     # Step 3.1.1.5: Flash success message and redirect user to /.
                     print(f'running /sell ...  sale processed successfully. Redirecting user to / ')

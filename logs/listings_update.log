@@ -8,3 +8,17 @@ running setup... SQLAlchemy Engine URL is sqlite:////home/thebuleganteng/MyFinan
 running setup... db.create_all has run
 PING COUNTER: 1
 running purge_unconfirmed_accounts ... started: 2024-01-30 09:05:05.349387
+running setup... SQLAlchemy Engine URL is sqlite:////home/thebuleganteng/MyFinance50_public/finance.sqlite
+running setup... db.create_all has run
+PING COUNTER: 1
+running purge_unconfirmed_accounts ... started: 2024-01-31 09:05:11.595221
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 10, in <module>
+    from forms.forms import BuyForm, LoginForm, PasswordChangeForm, PasswordResetRequestForm, PasswordResetRequestNewForm, ProfileForm, QuoteForm, RegisterForm, SellForm
+  File "/home/thebuleganteng/MyFinance50_public/forms/forms.py", line 15, in <module>
+    class FilterTransactionHistory(FlaskForm):
+  File "/home/thebuleganteng/MyFinance50_public/forms/forms.py", line 17, in FilterTransactionHistory
+    start_time = TimeField('Start Time', format='%H:%M', default=lambda:datetime.now())
+NameError: name 'TimeField' is not defined. Did you mean: 'DateField'?
