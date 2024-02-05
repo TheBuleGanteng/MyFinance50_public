@@ -429,7 +429,7 @@ def create_app(config_name=None):
 
         form = FilterTransactionHistory()
 
-        history = db.session.query(Transaction).filter_by(user_id = session['user'])
+        history = db.session.query(Transaction).filter_by(user_id = session['user']).order_by(Transaction.timestamp.desc())
 
         # Handle submission via post
         if request.method == 'POST':
@@ -441,17 +441,20 @@ def create_app(config_name=None):
                 # Pull in data from form
                 try:
                     date_start = form.date_start.data
-                    date_end = datetime.combine(form.date_end.data, datetime.min.time()) if form.date_start.data else None
+                    date_end = form.date_end.data
                     type = form.transaction_type.data
-                    print(f'running /history ... user is: { user }  date_start is: { date_start }')
-                    print(f'running /history ... user is: { user }  date_end is: { date_end }')
                     print(f'running /history ... user is: { user }  type is: { type }')
 
                     if date_start:
-                        history = history.filter(Transaction.timestamp >= datetime.combine(date_start, datetime.min.time()))
+                        date_start = datetime.combine(date_start, datetime.min.time())
+                        print(f'running /history ... user is: { user }  date_start is: { date_start }')
+                        history = history.filter(Transaction.timestamp >= date_start)
                     if date_end:
-                        history = history.filter(Transaction.timestamp <= datetime.combine(date_end, datetime.max.time()))
+                        date_end = datetime.combine(date_end, datetime.max.time())
+                        print(f'running /history ... user is: { user }  date_end is: { date_end }')
+                        history = history.filter(Transaction.timestamp <= date_end)
                     if type:
+                        print(f'running /history ... user is: { user }  type is: { type }')
                         history = history.filter(Transaction.type == type)
 
                     history = history.order_by(Transaction.timestamp.desc()).all()

@@ -107,22 +107,20 @@ password reset emails)
 This project uses a submodule of the [Custom_FlaskWtf_Filters_and_Validators](https://github.com/TheBuleGanteng/Custom_FlaskWtf_Filters_and_Validators) repository. To ensure you are using the most updated version of that repository, please do the following upon download:
 
 1. Navigate to the Submodule Directory within your main project.
-*cd path/to/Custom_FlaskWtf_Filters_and_Validators*
+*cd path_to_your_project_folder/Custom_FlaskWtf_Filters_and_Validators*
 
-1. Pull the Latest Changes: Fetch and check out the latest changes from the remote repository of the submodule. Replace 'master' with the branch you wish to pull from, if different
-*git pull origin main*  
+1. Update Submodule: Run the following command to fetch and update the submodule to the latest commit from the remote repository.
+*git submodule update --remote Custom_FlaskWtf_Filters_and_Validators*
 
-1. Commit the Submodule Update in the Main Project: Go back to the root directory of your main project and commit the changes. This step updates the main project to point to the new commit of the submodule.
-*cd ../..*  # Adjust this path to get back to your main project root
-*git add path/to/Custom_FlaskWtf_Filters_and_Validators*
-*git commit -m "Update Custom_FlaskWtf_Filters_and_Validators submodule"*
+1. Review Changes: Check the changes fetched from the submodule to ensure they are what you expect. You should see that the Custom_FlaskWtf_Filters_and_Validators submodule has new commits.
+*git status*
 
-1. Push the Changes: Push the changes to your main project's remote repository.
+1. Commit the Submodule Update: Commit the submodule update in your main project to record the change in which commit the submodule is pointing to.
+*git add Custom_FlaskWtf_Filters_and_Validators*
+*git commit -m "Update Custom_FlaskWtf_Filters_and_Validators submodule to latest"*
+
+1. Push Changes: Push the update to your remote repository.
 *git push*
-
-1. Update Other Copies: If there are other copies of your main project (like on other developers' machines or different environments), you need to update the submodule there as well:
-*git pull*  # In the main project directory
-*git submodule update --init --recursive*
 
 This process ensures that your main project uses the specific, updated version of the Custom_FlaskWtf_Filters_and_Validators submodule.
 

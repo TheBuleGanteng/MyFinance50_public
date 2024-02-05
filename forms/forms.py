@@ -1,5 +1,5 @@
 from Custom_FlaskWtf_Filters_and_Validators.filters_generic import strip_filter, lowercase_filter, uppercase_filter
-from Custom_FlaskWtf_Filters_and_Validators.validators_generic import allowed_chars_validator, is_positive_validator, not_equal_to_validator, optional_if_date_validator, pw_strength_validator
+from Custom_FlaskWtf_Filters_and_Validators.validators_generic import allowed_chars_validator, end_date_validator, is_positive_validator, not_equal_to_validator, optional_if_date_validator, pw_strength_validator
 from datetime import datetime
 from flask_wtf import FlaskForm
 from wtforms import DateField, DecimalRangeField, EmailField, FloatField, HiddenField, IntegerField, PasswordField, SelectField, StringField, SubmitField, ValidationError
@@ -16,18 +16,13 @@ class FilterTransactionHistory(FlaskForm):
     transaction_type = SelectField(
     'Type:',choices=[('', 'All'), ('BOT', 'Buy'), ('SLD', 'Sell')], coerce=str, validators=[Optional()], default='')
     date_start = DateField('Start date:', format='%Y-%m-%d', validators=[Optional()])
-    date_end = DateField('End date:', format='%Y-%m-%d', validators=[Optional()])
+    date_end = DateField('End date:', format='%Y-%m-%d', validators=[Optional(), end_date_validator])
     submit_button = SubmitField('Apply filter')
-
-    def validate_end_time(self, field):
-        if field.data <= form.start_time.data:
-            raise ValidationError("End time must be after start time.")
 
 class LoginForm(FlaskForm):
     email = StringField('Email', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator])
     password = PasswordField('Password', filters=[strip_filter], validators=[DataRequired()])
     submit_button = SubmitField('Log In')
-
 
 class PasswordChangeForm(FlaskForm):
     email = EmailField('Email address:', filters=[strip_filter, lowercase_filter], validators=[DataRequired(), Email(), allowed_chars_validator], render_kw={'required': True, 'type': 'email'})
