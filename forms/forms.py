@@ -1,5 +1,5 @@
 from Custom_FlaskWtf_Filters_and_Validators.filters_generic import strip_filter, lowercase_filter, uppercase_filter
-from Custom_FlaskWtf_Filters_and_Validators.validators_generic import allowed_chars_validator, end_date_validator, is_positive_validator, not_equal_to_validator, optional_if_date_validator, pw_strength_validator
+from Custom_FlaskWtf_Filters_and_Validators.validators_generic import allowed_chars_validator, end_date_validator, is_positive_validator, not_equal_to_validator, not_future_date_validator, optional_if_date_validator, pw_strength_validator
 from datetime import datetime
 from flask_wtf import FlaskForm
 from wtforms import DateField, DecimalRangeField, EmailField, FloatField, HiddenField, IntegerField, PasswordField, SelectField, StringField, SubmitField, ValidationError
@@ -16,7 +16,7 @@ class FilterTransactionHistory(FlaskForm):
     transaction_type = SelectField(
     'Type:',choices=[('', 'All'), ('BOT', 'Buy'), ('SLD', 'Sell')], coerce=str, validators=[Optional()], default='')
     date_start = DateField('Start date:', format='%Y-%m-%d', validators=[Optional()])
-    date_end = DateField('End date:', format='%Y-%m-%d', validators=[Optional(), end_date_validator])
+    date_end = DateField('End date:', format='%Y-%m-%d', validators=[Optional(), end_date_validator, not_future_date_validator])
     submit_button = SubmitField('Apply filter')
 
 class LoginForm(FlaskForm):
