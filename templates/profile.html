@@ -5,6 +5,15 @@
 {% endblock %}
 
 {% block main %}
+<!-- boostrap5 loading spinner -->
+<div id="loadingSpinner" class="d-flex align-items-center justify-content-center" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); z-index: 9999;">
+    <div>
+      <strong>Loading...</strong>
+      <div class="spinner-border ms-auto" role="status" aria-hidden="true"></div>
+    </div>
+</div>
+<!-- /boostrap5 loading spinner -->
+
 <!-- Instructional text -->
 <div class="container-fluid ps-0 mb-1">
     <div class="container-fluid container-instructions-start-bold">

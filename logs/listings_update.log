@@ -22,3 +22,9 @@ Traceback (most recent call last):
   File "/home/thebuleganteng/MyFinance50_public/forms/forms.py", line 17, in FilterTransactionHistory
     start_time = TimeField('Start Time', format='%H:%M', default=lambda:datetime.now())
 NameError: name 'TimeField' is not defined. Did you mean: 'DateField'?
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 14, in <module>
+    from helpers import apology, company_data, date_time, fmp_key, generate_nonce, generate_unique_token, login_required, lookup, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, send_email, update_listings, usd, verify_unique_token
+ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)

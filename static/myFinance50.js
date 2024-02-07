@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let debounce_timeout = 200;
     let symbolValidationPassed = false;
     let sharesValidationPassed = false;
+    let isButtonClicked = false;
 
     if (document.getElementById('accounting_method')) {        
         initial_accounting_method = document.getElementById('accounting_method').value;
@@ -71,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // Determine sequence of JS functions for each page ------------------------------------------------------------
-    // javascript for /buy ------------------------------------------
+    // javascript for buy ------------------------------------------
     if (window.location.href.includes('/buy')) {
         console.log("Running myFinance50.js for /buy... ");
 
@@ -106,20 +107,39 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
+        function eventHandler() {
+            jsSymbolValidationNew(jsEnableBuySubmitButton); // Validate in real-time
+            debounce(debouncedSymbolValidation)(); // Debounce and run additional validation
+        }
 
         if (symbol) {
-            document.getElementById('symbol').addEventListener('input', debounce(debouncedSymbolValidation, 500));
+            symbol.addEventListener('keyup', eventHandler);
+            symbol.addEventListener('change', eventHandler);
         }
         
         if (shares) {
             document.getElementById('shares').addEventListener('input', debounce(debouncedSharesValidation, 500)); // Using the same timeout for consistency
         }
+
+
+        const buyForm = document.querySelector('form[action="/buy"]');
+        buyForm.addEventListener('submit', function (e) {
+            e.preventDefault(); // Prevent form from submitting
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmBuyModal'));
+            confirmModal.show();
+        });
+
+        const confirmBuyButton = document.getElementById('confirmBuyButton');
+        confirmBuyButton.addEventListener('click', function () {
+            buyForm.submit(); // Submit the form
+        });
+
     }
     
-    // /javascript for /buy ------------------------------------------
+    // /javascript for buy ------------------------------------------
 
 
-    // javascript for /password_change ------------------------------------------
+    // javascript for password_change ------------------------------------------
     if (window.location.href.includes('/password_change')) {
         console.log("Running myFinance50.js for /password_change... ");
 
@@ -156,10 +176,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    // javascript for /password_change ----------------------------------------
+    // javascript for password_change ----------------------------------------
 
 
-    // javascript for /password_request_reset----------------------------------
+    // javascript for password_request_reset----------------------------------
     if (window.location.pathname === '/password_reset_request') {
         console.log("Running myFinance50.js for /password_reset_request... ");
 
@@ -174,10 +194,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // /javascript for /password_request_reset---------------------------------
+    // /javascript for password_request_reset---------------------------------
 
     
-    // javascript for /password_request_reset_new------------------------------
+    // javascript for password_request_reset_new------------------------------
     if (window.location.href.includes('/password_reset_request_new')) {
         console.log("Running myFinance50.js for /password_reset_request_new... ");
 
@@ -200,10 +220,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    // /javascript for /password_request_reset_new-----------------------------
+    // /javascript for password_request_reset_new-----------------------------
 
         
-    // javascript for /profile ------------------------------------------------
+    // javascript for profile ------------------------------------------------
     if (window.location.href.includes('/profile')) {
         console.log("Running myFinance50.js for /profile... ");
         
@@ -306,10 +326,49 @@ document.addEventListener('DOMContentLoaded', function() {
             buyForm.submit(); // Submit the form
         });
     }
-    // /javascript for /profile -----------------------------------------------
+    // /javascript for profile -----------------------------------------------
 
 
-    // javascript for /register -----------------------------------------------
+    // javascript for quote ---------------------------------------------------
+    if (window.location.href.includes('/quote')) {
+        console.log("Running myFinance50.js for /quote... ");
+        
+        var symbol = document.getElementById('symbol');
+        var submitButton = document.getElementById('submit_button');
+        
+        // Debounce function
+        function debounce(func, timeout = debounce_timeout){
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { func.apply(this, args); }, timeout);
+            };
+        }
+
+        // Debounced symbol validation function
+        function debouncedSymbolValidation() {
+            // Immediately disable the submit button when input changes
+            submitButton.disabled = true;
+            jsSymbolValidation().then(() => {
+                jsEnableQuoteSubmitButton(); // Check if the button should be enabled
+            });
+        }
+
+        function eventHandler() {
+            jsSymbolValidationNew(jsEnableQuoteSubmitButton); // Validate in real-time
+            debounce(debouncedSymbolValidation)(); // Debounce and run additional validation
+        }
+
+        if (symbol) {
+            symbol.addEventListener('keyup', eventHandler);
+            symbol.addEventListener('change', eventHandler);
+        }
+    }
+        
+    // /javascript for quote ---------------------------------------------------
+
+
+    // javascript for register -----------------------------------------------
     if (window.location.href.includes('/register')) {
         console.log("Running myFinance50.js for /register... ");
         
@@ -391,10 +450,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     } 
-    // /javascript for /register ----------------------------------------------
+    // /javascript for register ----------------------------------------------
 
 
-    // javascript for /sell ------------------------------------------
+    // javascript for sell ------------------------------------------
     if (window.location.href.includes('/sell')) {
         console.log('running myFinance50.js for /sell ... ');
         
@@ -442,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
             sellForm.submit(); // Submit the form
         });
     }
-    // /javascript for /sell ------------------------------------------
+    // /javascript for sell ------------------------------------------
 
 
 
@@ -841,6 +900,73 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
+    // Function description: Validates user input, searching on symbol or company name
+    function jsSymbolValidationNew() {
+        var symbol = document.getElementById('symbol');
+        var symbol_validation2 = document.getElementById('symbol_validation2');
+        console.log(`Running jsSymbolValidationNew()`);
+        console.log(`Running jsSymbolValidationNew()... symbol is: ${symbol}`);
+        console.log(`running jsSymbolValidationNew()... CSRF Token is: ${csrfToken}`);
+    
+        // Handles if no user entry for symbol
+        if (symbol.value.trim() === '') {
+            console.log(`Running jsSymbolValidationNew()... symbol ===' ' (symbol is empty)`);
+            symbol_validation2.innerHTML = '';
+            symbol_validation2.style.display = 'none';
+            
+        // Handles if there is user entry for symbol
+        } else {
+                console.log(`Running jsSymbolValidationNew()... symbol is not empty. Symbol is: ${ symbol }`);
+                fetch('/check_valid_symbol_new', {
+                method: 'POST',
+                body: new URLSearchParams({ 'user_input': symbol.value.trim() }),
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken,
+                }
+            })
+            // Take the response from check_valid_symbol_new() and parse it
+            .then(response => response.json()) 
+            .then(data => {
+                // First, clear any existing contents from symbol_validation2 and make the object visible
+                symbol_validation2.innerHTML = '';
+                symbol_validation2.style.display = 'block';
+                // Iterate over the data and append each result to symbol_validation2's innerHTML
+                data.forEach(item => {
+                    // Create a new child div for each record in the JSON object
+                    const div = document.createElement('div')
+                    // Populate that newly-created div as follows.
+                    div.innerHTML = `${item.symbol} - ${item.name} - ${item.exchange_short}<br/>`;
+                    // Add the 'result-button' class to this div
+                    div.classList.add('btn', 'btn-outline-secondary', 'custom-btn-company-search');
+                    // Set click event listener for each button
+                    div.addEventListener('click', function() {
+                        symbol.blur(); // Remove focus from the input
+                        symbol.value = item.symbol; // Populate the symbol input field with the clicked symbol
+                        jsSymbolValidation().then(() => { // Validate the newly populated symbol
+                            if (enableSubmitButtonFunction && typeof enableSubmitButtonFunction === 'function') {
+                                enableSubmitButtonFunction(); // Call the passed function to enable the submit button
+                            }
+                        });
+                    });
+                    // Append the new child div to the parent container
+                    symbol_validation2.appendChild(div);
+                });
+
+                if (data.length === 0) {
+                    // If no results, display a message
+                    symbol_validation2.innerHTML = '';
+                    symbol_validation2.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                symbol_validation2.innerHTML = 'Error fetching symbol data';
+            });
+        }
+    }    
+
+
     // Function description: Enables and shows submit button provided the user has
     function jsUpdateTaxRateDisplaySTCG(slider, display) {
         var hiddenInput = document.getElementById('tax_rate_STCG_hidden');
@@ -920,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Function description: Enables buy button at /buy
+    // Function description: Enables buy button at /buy   
     function jsEnableBuySubmitButton() {
         var submitButton = document.getElementById('submit_button');
         
@@ -1112,6 +1238,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+
+    // Function description: Enables buy button at /quote
+    function jsEnableQuoteSubmitButton() {
+        var submitButton = document.getElementById('submit_button');
+        
+        // Initially disable submit to ensure button is disabled while promises are in progress
+        console.log(`Running jsEnableQuoteSubmitButton() ... `)
+        console.log(`Running jsEnableQuoteSubmitButton() ... CSRF Token is: ${csrfToken}`);
+
+        // Initially disable submit to prevent premature submissions
+        submitButton.disabled = true;
+
+        if (symbolValidationPassed) {
+            console.log('Running jsEnableQuoteSubmitButton() ... enabling submit button.');
+            submitButton.disabled = false;
+        } else {
+            console.log('Running jsEnableQuoteSubmitButton() ... disabling submit button due to failed or incomplete validation.');
+            submitButton.disabled = true;
+        }
+    }
 
 
     // Function description: Enables and shows submit button provided the user has

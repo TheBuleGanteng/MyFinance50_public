@@ -33,9 +33,20 @@ nav .navbar-brand .green
   font-size: smaller;
 }
 
+
 .colspan_tr {
   background-color:rgb(221, 237, 255);
   font-style: italic;
+}
+
+
+.custom-btn-company-search {
+  margin: 2px;
+  font-size: smaller;
+  padding-bottom: 0.05rem !important;
+  padding-top: 0.05rem !important; 
+  transition: transform 0.3s step-end; /* Smooth transition for hover effect */
+  width: 100% !important;
 }
 
 
@@ -7385,6 +7396,7 @@ textarea.form-control-lg {
 .pt-0 {
   padding-top: 0 !important;
 }
+
 
 .pt-1 {
   padding-top: 0.25rem !important;

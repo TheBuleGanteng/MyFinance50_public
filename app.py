@@ -16,7 +16,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 import re
-from sqlalchemy import func
+from sqlalchemy import func, or_
 import sys
 import time
 from urllib.parse import unquote
@@ -70,8 +70,6 @@ def create_app(config_name=None):
     Session(app)
     db.init_app(app)
     csrf.init_app(app)
-    #mail.init_app(app)
-    #oauth = OAuth(app)
     talisman.init_app(app, content_security_policy=app.config['CONTENT_SECURITY_POLICY'])
 
     @app.after_request
@@ -319,6 +317,61 @@ def create_app(config_name=None):
 
 # -----------------------------------------------------------------------
 
+    @app.route('/check_valid_symbol_new', methods=['GET', 'POST'])
+    
+    def check_valid_symbol_route_new():
+        user_input = request.form.get('user_input') if request.method == 'POST' else request.args.get('user_input')
+
+        results = check_valid_symbol_new(user_input, False)
+
+        return jsonify(results)
+
+    
+    def check_valid_symbol_new(user_input, is_internal_call=False):
+        print(f'running /check_valid_symbol_new ... function started')
+        print(f'running /check_valid_symbol_new ... user_input is: { user_input }')
+
+        try:
+
+            # Determine the primary filter and ordering criterion based on the length of user_input
+            if len(user_input) < 6:
+                primary_filter = Listing.symbol.ilike(user_input + '%')
+                primary_order = func.abs(func.length(Listing.symbol) - func.length(user_input))
+            else:
+                primary_filter = Listing.name.ilike('%' + user_input + '%')  # Names containing user_input
+                primary_order = func.abs(func.length(Listing.name) - func.length(user_input))  # Closest length match for names
+
+            # Construct the query with the determined filter and ordering
+            listings = db.session.query(Listing.symbol, Listing.name, Listing.exchange_short).filter(or_(
+                    primary_filter,  # Primary filter based on the length of user_input
+                    Listing.name.ilike('%' + user_input + '%')  # Always include name contains user_input as a secondary option
+                )
+            ).order_by(
+                primary_order,  # Primary ordering based on the length of user_input
+                func.length(Listing.symbol), # Secondary ordering by symbol length, for tie-breaking
+                func.length(Listing.name)  
+                
+            ).limit(5).all()
+
+            print(f'running /check_valid_symbol_new ... listings is: {listings}')
+
+            results = []
+
+            if listings:
+                for listing in listings:
+                    results.append({'symbol': listing.symbol, 'name': listing.name, 'exchange_short': listing.exchange_short})
+                print(f'running /check_valid_symbol_new ... results is: { results }')
+            else:
+                print(f'running /check_valid_symbol_new ... no matches for user_input, results is: { results }')
+            
+            return results
+            
+        except Exception as e:
+            print(f'running /check_valid_symbol_new ... function errored: { e }')
+            return []
+
+# -----------------------------------------------------------------------
+        
     @app.route('/check_valid_symbol', methods=['GET', 'POST'])
     
     def check_valid_symbol_route():

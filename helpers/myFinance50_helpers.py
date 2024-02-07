@@ -61,6 +61,7 @@ def apology(message, code=400):
     return render_template("apology.html", top=code, bottom=escape(message)), code
 
 
+
 # Pull company data via FMP API
 def company_data(symbol, fmp_key):
     print(f'running get_stock_info(symbol): ... symbol is: { symbol }')
