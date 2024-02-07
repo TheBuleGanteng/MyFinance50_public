@@ -71,6 +71,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 
+    // Set debounce function globally
+    // Debounce function
+    function debounce(func, timeout = debounce_timeout){
+        let timer;
+        return (...args) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => { func.apply(this, args); }, timeout);
+        };
+    }
+
+
     // Determine sequence of JS functions for each page ------------------------------------------------------------
     // javascript for buy ------------------------------------------
     if (window.location.href.includes('/buy')) {
@@ -80,14 +91,6 @@ document.addEventListener('DOMContentLoaded', function() {
         var shares = document.getElementById('shares');
         var submitButton = document.getElementById('submit_button');
         
-        // Debounce function
-        function debounce(func, timeout = debounce_timeout){
-            let timer;
-            return (...args) => {
-                clearTimeout(timer);
-                timer = setTimeout(() => { func.apply(this, args); }, timeout);
-            };
-        }
 
         // Debounced symbol validation function
         function debouncedSymbolValidation() {
@@ -193,7 +196,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-
     // /javascript for password_request_reset---------------------------------
 
     
@@ -336,14 +338,6 @@ document.addEventListener('DOMContentLoaded', function() {
         var symbol = document.getElementById('symbol');
         var submitButton = document.getElementById('submit_button');
         
-        // Debounce function
-        function debounce(func, timeout = debounce_timeout){
-            let timer;
-            return (...args) => {
-                clearTimeout(timer);
-                timer = setTimeout(() => { func.apply(this, args); }, timeout);
-            };
-        }
 
         // Debounced symbol validation function
         function debouncedSymbolValidation() {
@@ -364,7 +358,6 @@ document.addEventListener('DOMContentLoaded', function() {
             symbol.addEventListener('change', eventHandler);
         }
     }
-        
     // /javascript for quote ---------------------------------------------------
 
 
@@ -460,14 +453,6 @@ document.addEventListener('DOMContentLoaded', function() {
         var symbol = document.getElementById('symbol');
         var shares = document.getElementById('shares');
         
-        // Debounce function
-        function debounce(func, timeout = debounce_timeout){
-            let timer;
-            return (...args) => {
-                clearTimeout(timer);
-                timer = setTimeout(() => { func.apply(this, args); }, timeout);
-            };
-        }
 
         // Function that wraps jsSymbolValidation with debouncing
         function debouncedSharesValidation() {
