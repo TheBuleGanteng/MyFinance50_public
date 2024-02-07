@@ -39,6 +39,43 @@ nav .navbar-brand .green
   font-style: italic;
 }
 
+.quote-changes {
+  font-size: calc(1.375rem + 1.5vw); /* REPLICATES H1 */
+  font-weight: bold;
+  margin: 1px;
+}
+
+.quote-changes-positive {
+  color:  var(--bs-green);
+}
+
+.quote-changes-negative {
+  color:  var(--bs-red);
+}
+
+.quote-currency {
+  color: grey; 
+  font-size: smaller;
+}
+
+.quote-price {
+  font-size: calc(1.375rem + 1.5vw); /* REPLICATES H1 */
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.quote-logo-small {
+  background-color: black;
+  justify-content: start;
+  padding: 5px;
+}
+
+.quote-logo-small img {
+  width: auto; /* Makes the image responsive within its container */
+  max-height: 75% !important; /* Maintain aspect ratio */
+}
+
+
 
 .custom-btn-company-search {
   margin: 2px;

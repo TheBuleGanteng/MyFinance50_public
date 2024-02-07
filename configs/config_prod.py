@@ -46,6 +46,7 @@ class DevelopmentConfig:
     'img-src': [
         "'self'",
         "data:",  # Allows data URIs for images
+        "https://financialmodelingprep.com/", # Allowed bc image used for /quoted
     ],
     'report-uri': '/csp-violation-report'
     }

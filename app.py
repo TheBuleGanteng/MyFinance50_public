@@ -4,6 +4,7 @@ from datetime import datetime
 from email.message import EmailMessage
 from extensions import db, csrf, talisman, load_dotenv  
 from flask import Flask, flash, jsonify, make_response, redirect, render_template, request, session, url_for
+from flask_babel import Babel, format_decimal
 from flask_mail import Mail, Message
 from flask_migrate import Migrate
 from flask_session import Session
@@ -11,7 +12,7 @@ from forms.forms import BuyForm, FilterTransactionHistory, LoginForm, PasswordCh
 import google.auth
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from helpers import apology, company_data, date_time, fmp_key, generate_nonce, generate_unique_token, login_required, lookup, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, send_email, update_listings, usd, verify_unique_token
+from helpers import apology, company_data, date_time, fmp_key, generate_nonce, generate_unique_token, login_required, number_format, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, send_email, update_listings, usd, verify_unique_token
 import logging
 from logging.handlers import RotatingFileHandler
 import os
@@ -55,10 +56,11 @@ def create_app(config_name=None):
 
     app.logger.setLevel(logging.INFO)
 
-    # Custom filter
+    # Custom jinja filters
     app.jinja_env.filters['usd'] = usd
     app.jinja_env.filters['percentage'] = percentage
     app.jinja_env.filters['date_time'] = date_time
+    app.jinja_env.filters['number_format'] = number_format
 
     # Enable flask-migrate (allows db changes via models.py)
     migrate = Migrate(app, db)
@@ -68,6 +70,7 @@ def create_app(config_name=None):
     sys.path.append(app.config.get('CUSTOM_FLASKWTF_PATH'))
 
     Session(app)
+    babel = Babel(app)
     db.init_app(app)
     csrf.init_app(app)
     talisman.init_app(app, content_security_policy=app.config['CONTENT_SECURITY_POLICY'])
@@ -1003,15 +1006,12 @@ Team {project_name}'''
 
                 # Step 1.1.2: Pull quote, returning error message if symbol is invalid
                 try:
-                    name = company_data(symbol, fmp_key)['companyName']
-                    price = company_data(symbol, fmp_key)['price']
-                    print(f'running /quote... name is: { name }')
-                    print(f'running /quote... price is: { price }')
-                    print(f'running /quote... successfully pulled quote. Flashing message and directing user to quoted.html')
-                    return render_template("quoted.html", symbol=symbol, name=name, price=price)
+                    company_profile = company_data(symbol, fmp_key)
+                    print(f'running /quote... successfully pulled company_profile. Flashing message and directing user to quoted.html')
+                    return render_template("quoted.html", company_profile=company_profile)
                 except TypeError as e:
                     print(f'running /quote... user submitted with invalid symbol: { symbol }. Flashing error and returning user to /quote.')
-                    flash('Error: Invalid stock symbol')
+                    flash(f'Error {e}: Invalid stock symbol')
                     return render_template('quote.html', form=form)
             
             # Step 1.2: Handle submission via post + user input fails form validation

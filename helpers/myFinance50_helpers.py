@@ -9,7 +9,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from flask import current_app
-#from flask_oauthlib.client import OAuth
+from flask_babel import Babel, format_decimal
 from google.auth import impersonated_credentials
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -96,7 +96,6 @@ def date_time(value, format='%Y-%m-%d %H:%M'):
     return datetime.strptime(value, '%Y-%m-%d %H:%M:%S.%f').strftime(format)
 
 
-
 # Defines key for FMP api
 fmp_key = os.getenv('FMP_API_KEY')
 
@@ -117,43 +116,6 @@ def login_required(f):
     return decorated_function
 
 
-# Yahoo API call (CS50 legacy)
-def lookup(symbol):
-    """Look up quote for symbol."""
-
-    # Prepare API request
-    symbol = symbol.upper()
-    end = datetime.now()
-    start = end - timedelta(days=7)
-
-    # Yahoo Finance API
-    url = (
-        f"https://query1.finance.yahoo.com/v7/finance/download/{urllib.parse.quote_plus(symbol)}"
-        f"?period1={int(start.timestamp())}"
-        f"&period2={int(end.timestamp())}"
-        f"&interval=1d&events=history&includeAdjustedClose=true"
-    )
-
-    # Query API
-    try:
-        response = requests.get(url, cookies={"session": str(uuid.uuid4())}, headers={"User-Agent": "python-requests", "Accept": "*/*"})
-        response.raise_for_status()
-
-        # CSV header: Date,Open,High,Low,Close,Adj Close,Volume
-        quotes = list(csv.DictReader(response.content.decode("utf-8").splitlines()))
-        quotes.reverse()
-        price = round(float(quotes[0]["Adj Close"]), 2)
-        #print(f'running lookup(symbol)... resonse is: { response }')
-        #print(f'running lookup(symbol)... price is: { price }')
-        #print(f'running lookup(symbol)... quotes is: { quotes }')
-        return {
-            "name": symbol,
-            "price": price,
-            "symbol": symbol
-        }
-    except (requests.RequestException, ValueError, KeyError, IndexError):
-        return None
-
 
 # Generates a nonce to work with Talisman-managed CSP
 def generate_nonce():
@@ -170,6 +132,22 @@ def generate_unique_token(id, secret_key):
 
 # Set token age (used for token generation and to set auto removal of stale DB records)
 max_token_age_seconds = os.getenv('MAX_TOKEN_AGE_SECONDS')
+
+
+# Formats number with commas and periods, relative to user's location 
+# Can be called directly or used as jinja filter.
+def number_format(value):
+    if value is None:
+        return ""
+    # Format number
+    try:
+        # Convert to integer for formatting
+        value = int(value)
+        # Use Flask-Babel's format_decimal to format the number according to the current locale
+        return format_decimal(value)
+    except (ValueError, TypeError):
+        return value
+
 
 
 # Custom jinja filter: x.xx% or (x.xx%)

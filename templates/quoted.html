@@ -14,22 +14,160 @@
 </div>
 <!-- /boostrap5 loading spinner -->
 
-<h2>Stock Information</h2>
-<table>
-    <thead>
-        <tr>
-            <!-- Below are the headers for the table that shows stock info -->
-            <th>Ticker</th>
-            <th>Company Name</th>
-            <th>Stock Price</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <!-- Below are the values that have been passed in from app.py in the /quote function -->
-            <td>{{ symbol }}</td>
-            <td>{{ name }}</td>
-            <td>{{ price | usd }}</td>
-    </tbody>
-</table>
+<!-- page content -->
+
+<div class='row mb-1'>
+
+    <!-- logo -->
+    <div class='col-lg-2 col-3'>
+        <div class='quote-logo-small'>
+            <img src='{{ company_profile["image"] }}' alt='Company Logo' class='img-fluid'>
+        </div>
+    </div>
+    <!-- /logo -->
+
+    <!-- company name, symbol, and price change -->
+    <div class='col'>
+        <div class='row content-start'>
+            <h1>{{ company_profile['companyName'] }} ({{ company_profile['symbol'] }})</h1>  
+        </div>
+        <div class='row content-start'>
+            <div>
+                <span class='quote-currency'>{{ company_profile['currency'] }}</span>
+                <span class='quote-price'>{{ company_profile['price'] | usd }}</span>
+            </div>
+        </div>
+        <div class='row content-start'>
+            <div>
+                <span class='quote-currency'>1d:</span>
+                {% if company_profile['changes'] < 0 %}
+                    <span class='quote-changes quote-changes-negative'>({{ company_profile['changes'] | usd }})</span>
+                    <span class='quote-changes quote-changes-negative'>{{ '+' + ((company_profile['changes'] / (company_profile['price'] - company_profile['changes'] )) | percentage) }}</span>
+                {% elif company_profile['changes'] > 0 %}
+                    <span class='quote-changes quote-changes-positive'>+{{ company_profile['changes'] | usd }}</span>
+                    <span class='quote-changes quote-changes-positive'>{{ '+' + ((company_profile['changes'] / (company_profile['price'] - company_profile['changes'] )) | percentage) }}</span>
+                {% else %}
+                    <span class='quote-changes'>{{ company_profile['changes'] | usd }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- /company name, symbol, and price change -->
+</div>
+
+<!-- accordion for company profile -->
+<div class='row mb-1'>
+    <div class="accordion accordion-flush" id="accordionFlushExample">
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="flush-headingOne">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+              Company profile
+            </button>
+          </h2>
+          <div id="flush-collapseOne" class="accordion-collapse collapse show" aria-labelledby="flush-headingOne">
+            <div class="accordion-body">
+                <div class='row mb-1'>
+                    <div class='col-1'>
+                        <span><strong>Description: </strong></span>
+                    </div>
+                    <div class='col'>
+                        {{ company_profile['description']}}
+                    </div>
+                </div>
+                <hr>
+                <div class='row mb-1'>
+                    <div class='col-1'>
+                        <span><strong>Industry: </strong></span>
+                    </div>
+                    <div class='col'>
+                        {{ company_profile['industry']}}
+                    </div>
+                </div>
+                <hr>
+                <div class='row mb-1'>
+                    <div class='col-1'>
+                        <span><strong>Sector: </strong></span>
+                    </div>
+                    <div class='col'>
+                        {{ company_profile['sector']}}
+                    </div>
+                </div>
+                <hr>
+                <div class='row mb-1'>
+                    <div class='col-1'>
+                        <span><strong>Website: </strong></span>
+                    </div>
+                    <div class='col'>
+                        <a href='{{ company_profile["website"]}}'>{{ company_profile["website"]}}</a>
+                    </div>
+                </div>
+                <hr>
+                <div class='row mb-1'>
+                    <div class='col-1'>
+                        <span><strong>Employees: </strong></span>
+                    </div>
+                    <div class='col'>
+                        {{ company_profile['fullTimeEmployees'] | number_format }}
+                    </div>
+                </div>
+                <hr>
+                <div class='row mb-1'>
+                    <div class='col-1'>
+                        <span><strong>Country: </strong></span>
+                    </div>
+                    <div class='col'>
+                        {{ company_profile['country']}}
+                    </div>
+                </div>
+                <hr>            
+                <div class='row mb-1'>
+                    <div class='col-1'>
+                        <span><strong>CEO: </strong></span>
+                    </div>
+                    <div class='col'>
+                        {{ company_profile['ceo']}}
+                    </div>
+                </div>
+            </div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="flush-headingTwo">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseTwo" aria-expanded="false" aria-controls="flush-collapseTwo" style='margin-top: 5px;'>
+              Stock data
+            </button>
+          </h2>
+          <div id="flush-collapseTwo" class="accordion-collapse collapse show" aria-labelledby="flush-headingTwo">
+            <div class="accordion-body">
+                <div class='row mb-1'>
+                    <div class='col-1'>
+                        <span><strong>Mkt. cap: </strong></span>
+                    </div>
+                    <div class='col'>
+                        {{'$' + ((company_profile['mktCap'] / 1000000000) | number_format) + ' billion' }}
+                    </div>
+                </div>
+                <hr>
+                <div class='row mb-1'>
+                    <div class='col-1'>
+                        <span><strong>Avg. vol.: </strong></span>
+                    </div>
+                    <div class='col'>
+                        {{ company_profile['volAvg'] | number_format + ' daily shares'}}
+                    </div>
+                </div>
+                <hr>
+                <div class='row mb-1'>
+                    <div class='col-1'>
+                        <span><strong>Beta: </strong></span>
+                    </div>
+                    <div class='col'>
+                        {{ company_profile['beta']}}
+                    </div>
+                </div>  
+            </div>
+          </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

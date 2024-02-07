@@ -886,7 +886,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // Function description: Validates user input, searching on symbol or company name
-    function jsSymbolValidationNew() {
+    function jsSymbolValidationNew(enableSubmitButtonFunction) {
         var symbol = document.getElementById('symbol');
         var symbol_validation2 = document.getElementById('symbol_validation2');
         console.log(`Running jsSymbolValidationNew()`);
