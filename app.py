@@ -575,32 +575,39 @@ def create_app(config_name=None):
                 password = form.password.data
                 print(f'running /login... user-submitted email is: { email }')
                 
-                user = db.session.query(User).filter_by(email = email).scalar()
-                print(f'running /login... queried database on user-entered email, result is: { user }')
+                try:
+                    user = db.session.query(User).filter_by(email = email).scalar()
+                    print(f'running /login... queried database on user-entered email, result is: { user }')
+                    
+                    # Step 2.1.2: Validate that user-submitted password is correct
+                    if not check_password_hash(user.hash, form.password.data):
+                        print(f'running /login... error 2.1.2 (invalid password), flashing message and redirecting user to /login')
+                        session['temp_flash'] = 'Error: Invalid username and/or password. If you have not yet registered, please click the link below. If you have recently requested a password reset, check your email inbox and spam folders.'
+                        time.sleep(1)
+                        return redirect('/login')
+
+                    # Step 2.1.3: Validate that user account is confirmed
+                    if user.confirmed != 'Yes':
+                        print(f'running /login... error 2.1.3 (user.confirmed != yes), flashing message and redirecting user to /login')
+                        session['temp_flash'] = 'Error: This account has not yet been confirmed. Please check your email inbox and spam folder for email instructions regarding how to confirm your registration. You may re-register below, if needed.'
+                        time.sleep(1)
+                        return redirect('/login')
+
+                    # Step 2.1.4: Remember which user has logged in
+                    session['user'] = user.id
+                    print(f'running /login... session[user_id] is: { session["user"] }')
+
+                    # Step 2.1.5: Redirect user to home page
+                    print(f'running /login... redirecting to /index.  User is: { session }')
+                    print(f'running /login ... session.get(user) is: { session.get("user") }')
+                    return redirect(url_for('index'))
                 
-                # Step 2.1.2: Validate that user-submitted password is correct
-                if not check_password_hash(user.hash, form.password.data):
-                    print(f'running /login... error 2.1.2 (invalid password), flashing message and redirecting user to /login')
-                    session['temp_flash'] = 'Error: Invalid username and/or password. If you have not yet registered, please click the link below. If you have recently requested a password reset, check your email inbox and spam folders.'
-                    time.sleep(1)
-                    return redirect('/login')
+                # Handle exception if didn't find user email in DB
+                except AttributeError as e:
+                    print(f'running /login... AttributeError {e}. Flashing error and redirecting to login')
+                    session['temp_flash'] = 'Error: User not found. Please check your input. If you do not yet have an account, you may register via the link below.'
+                    return render_template('login.html', form=form)
 
-                # Step 2.1.3: Validate that user account is confirmed
-                if user.confirmed != 'Yes':
-                    print(f'running /login... error 2.1.3 (user.confirmed != yes), flashing message and redirecting user to /login')
-                    session['temp_flash'] = 'Error: This account has not yet been confirmed. Please check your email inbox and spam folder for email instructions regarding how to confirm your registration. You may re-register below, if needed.'
-                    time.sleep(1)
-                    return redirect('/login')
-
-                # Step 2.1.4: Remember which user has logged in
-                session['user'] = user.id
-                print(f'running /login... session[user_id] is: { session["user"] }')
-
-                # Step 2.1.5: Redirect user to home page
-                print(f'running /login... redirecting to /index.  User is: { session }')
-                print(f'running /login ... session.get(user) is: { session.get("user") }')
-                return redirect(url_for('index'))
-            
             # Step 2.2: Handle submission via post + user input fails form validation
             else:
                 print(f'Running /login ... Error 2.2, flashing message and redirecting user to /login')
