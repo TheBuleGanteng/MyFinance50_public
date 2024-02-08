@@ -245,7 +245,7 @@ def process_user_transactions(user):
     portfolio.sld_transaction_return_percent_post_tax = ((portfolio.sld_transaction_market_value_post_tax_total / portfolio.sld_transaction_cost_basis_total) - 1) if portfolio.sld_transaction_cost_basis_total else "-"
     
     portfolio.cash = user.cash 
-    portfolio.cash_initial = user.cash
+    portfolio.cash_initial = user.cash_initial
     print(f'running /process_user_transactions(user) ...  portfolio.cash is: { portfolio.cash }')
 
     # Step 3.5: Derive total portfolio cost basis, market value, and returns, all ex cash.

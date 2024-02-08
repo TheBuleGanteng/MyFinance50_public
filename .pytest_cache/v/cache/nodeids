@@ -1,0 +1,16 @@
+[
+  "app_test.py::test_login_code_200",
+  "app_test.py::test_login_code_200_register",
+  "app_test.py::test_login_csp_headers",
+  "app_test.py::test_login_for_unconfirmed_user",
+  "app_test.py::test_login_happy_path",
+  "app_test.py::test_login_missing_CSRF",
+  "app_test.py::test_login_undeliverable_email",
+  "app_test.py::test_login_with_invalid_pw",
+  "app_test.py::test_login_with_invalid_username_invalid_pw",
+  "app_test.py::test_login_with_unregistered_email",
+  "app_test.py::test_login_without_email",
+  "app_test.py::test_login_without_email_without_pw",
+  "app_test.py::test_login_without_pw",
+  "app_test.py::test_register_happy_path_part_a"
+]

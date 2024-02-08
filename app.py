@@ -994,6 +994,18 @@ Team {project_name}'''
 
         form = QuoteForm()
 
+        # This checks if there is a symbol in the query string (used to enable links)
+        symbol = request.args.get('symbol')
+
+        # If the route was accessed via a direct link with a symbol parameter
+        if symbol:
+            try:
+                company_profile = company_data(symbol, fmp_key)
+                return render_template("quoted.html", company_profile=company_profile)
+            except TypeError as e:
+                flash(f'Error {e}: Invalid stock symbol')
+                return redirect(url_for('quote'))  # Redirect to the quote page if symbol is invalid
+
         # Step 1: Handle submission via post
         if request.method == 'POST':
 
@@ -1028,9 +1040,6 @@ Team {project_name}'''
         else:
             print(f'Running /quote ... user arrived via GET')
             return render_template('quote.html', form=form)
-            """response = make_response(render_template('login.html', form=form nonce=nonce))
-            print(f'response.headers is: {response.headers}')
-            return response"""
     
 # ------------------------------------------------------------------------------
     

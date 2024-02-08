@@ -52,6 +52,14 @@
             </div>
         </div>
     </div>
+    <div class='col col-lg-2 col-3'>
+        <div class='row content-start'>
+            <div>
+                <a href="{{ url_for('sell') }}" class='btn btn-success w-100 mb-1 p-0'>Sell {{ company_profile['symbol'] }}</a>
+                <a href="{{ url_for('buy') }}" class='btn btn-success w-100 mb-1 p-0'>Buy {{ company_profile['symbol'] }}</a>                
+            </div>
+        </div>
+    </div>
     <!-- /company name, symbol, and price change -->
 </div>
 
@@ -67,7 +75,7 @@
           <div id="flush-collapseOne" class="accordion-collapse collapse show" aria-labelledby="flush-headingOne">
             <div class="accordion-body">
                 <div class='row mb-1'>
-                    <div class='col-1'>
+                    <div class='col-xl-1 col-lg-2 col-md-3 col-4'>
                         <span><strong>Description: </strong></span>
                     </div>
                     <div class='col'>
@@ -76,7 +84,7 @@
                 </div>
                 <hr>
                 <div class='row mb-1'>
-                    <div class='col-1'>
+                    <div class='col-xl-1 col-lg-2 col-md-3 col-4'>
                         <span><strong>Industry: </strong></span>
                     </div>
                     <div class='col'>
@@ -85,7 +93,7 @@
                 </div>
                 <hr>
                 <div class='row mb-1'>
-                    <div class='col-1'>
+                    <div class='col-xl-1 col-lg-2 col-md-3 col-4'>
                         <span><strong>Sector: </strong></span>
                     </div>
                     <div class='col'>
@@ -94,7 +102,7 @@
                 </div>
                 <hr>
                 <div class='row mb-1'>
-                    <div class='col-1'>
+                    <div class='col-xl-1 col-lg-2 col-md-3 col-4'>
                         <span><strong>Website: </strong></span>
                     </div>
                     <div class='col'>
@@ -103,7 +111,7 @@
                 </div>
                 <hr>
                 <div class='row mb-1'>
-                    <div class='col-1'>
+                    <div class='col-xl-1 col-lg-2 col-md-3 col-4'>
                         <span><strong>Employees: </strong></span>
                     </div>
                     <div class='col'>
@@ -112,7 +120,7 @@
                 </div>
                 <hr>
                 <div class='row mb-1'>
-                    <div class='col-1'>
+                    <div class='col-xl-1 col-lg-2 col-md-3 col-4'>
                         <span><strong>Country: </strong></span>
                     </div>
                     <div class='col'>
@@ -121,7 +129,7 @@
                 </div>
                 <hr>            
                 <div class='row mb-1'>
-                    <div class='col-1'>
+                    <div class='col-xl-1 col-lg-2 col-md-3 col-4'>
                         <span><strong>CEO: </strong></span>
                     </div>
                     <div class='col'>
@@ -140,7 +148,16 @@
           <div id="flush-collapseTwo" class="accordion-collapse collapse show" aria-labelledby="flush-headingTwo">
             <div class="accordion-body">
                 <div class='row mb-1'>
-                    <div class='col-1'>
+                    <div class='col-xl-1 col-lg-2 col-md-3 col-4'>
+                        <span><strong>52 Wk. range: </strong></span>
+                    </div>
+                    <div class='col'>
+                        {{ '$' + company_profile['range'].replace('-', ' - $') }}
+                    </div>
+                </div>
+                <hr>
+                <div class='row mb-1'>
+                    <div class='col-xl-1 col-lg-2 col-md-3 col-4'>
                         <span><strong>Mkt. cap: </strong></span>
                     </div>
                     <div class='col'>
@@ -149,7 +166,7 @@
                 </div>
                 <hr>
                 <div class='row mb-1'>
-                    <div class='col-1'>
+                    <div class='col-xl-1 col-lg-2 col-md-3 col-4'>
                         <span><strong>Avg. vol.: </strong></span>
                     </div>
                     <div class='col'>
@@ -158,7 +175,7 @@
                 </div>
                 <hr>
                 <div class='row mb-1'>
-                    <div class='col-1'>
+                    <div class='col-xl-1 col-lg-2 col-md-3 col-4'>
                         <span><strong>Beta: </strong></span>
                     </div>
                     <div class='col'>

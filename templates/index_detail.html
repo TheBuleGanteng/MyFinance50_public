@@ -51,7 +51,7 @@
             {% for symbol, data in portfolio._portfolio_data.items() %}
                 <!-- metrics for open positions, consolidated on {{ symbol }} -->
                 <tr>
-                    <td>{{ symbol }}</td>
+                    <td><a href="/quote?symbol={{ symbol }}">{{ symbol }}</a></td>
                     <td>{{ data['transaction_shares'] }} </td>
                     <td>{{ data['shares_outstanding']  }}</td>
                     <td>{{ data['cost_basis_per_share'] | usd }} </td>
@@ -184,7 +184,7 @@
                     <td>{{ portfolio.total_portfolio_transaction_shares }}</td>
                     <td>{{ portfolio.portfolio_total_shares_outstanding }}</td>
                     <td>-</td>
-                    <td>{{ portfolio.initial_cash | usd }}</td>
+                    <td>{{ portfolio.cash_initial | usd }}</td>
                     <td>-</td>
                     <td>{{ portfolio.total_portfolio_STCG | usd }}</td>
                     <td>{{ portfolio.total_portfolio_LTCG | usd }}</td>

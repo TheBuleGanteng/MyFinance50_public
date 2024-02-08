@@ -1,6 +1,6 @@
 import os
 
-class DevelopmentConfig:
+class ProdConfig:
     
     # Get the base directory of your app--
     BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))

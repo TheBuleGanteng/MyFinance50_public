@@ -137,7 +137,7 @@
                 <tr>
                     <td>{{ transaction.timestamp | date_time }}</td>
                     <td>{{ transaction.transaction_id }}</td>
-                    <td>{{ transaction.symbol }}</td>
+                    <td><a href="/quote?symbol={{ transaction.symbol }}">{{ transaction.symbol }}</a></td>
                     <td>{{ transaction.type }}</td>
                     <td>{{ transaction.transaction_shares }}</td>
                     <td>{{ transaction.transaction_value_per_share | usd }}</td>
