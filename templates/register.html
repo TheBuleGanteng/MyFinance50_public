@@ -228,7 +228,7 @@
     
     <!-- accounting_method -->
     <div class='user_input_registration row'>        
-        {{ form.accounting_method.label(class='col-sm-2 form-label-start-bold') }}
+        {{ form.accounting_method.label(class='col-sm-2 form-label-start-req-bold') }}
         <div class='col-sm-8 col-md-6 col-lg-4'>
             {{ form.accounting_method(class='form-control', id='accounting_method') }}
         </div>
@@ -249,7 +249,7 @@
 
     <!-- tax_loss_offsets -->
     <div class='user_input_registration row'>        
-        {{ form.tax_loss_offsets.label(class='col-sm-2 form-label-start-bold') }}
+        {{ form.tax_loss_offsets.label(class='col-sm-2 form-label-start-req-bold') }}
         <div class='col-sm-8 col-md-6 col-lg-4'>
             {{ form.tax_loss_offsets(class='form-control', id='tax_loss_offsets') }}
         </div>
@@ -269,7 +269,7 @@
 
     <!-- tax_rate_STCG -->
     <div class='user_input_registration row'>
-        {{ form.tax_rate_STCG.label(class='col-sm-2 form-label-start-bold') }}
+        {{ form.tax_rate_STCG.label(class='col-sm-2 form-label-start-req-bold') }}
         <div class='col-sm-8 col-md-6 col-lg-4'>
             <span id='tax_rate_STCG_value'>
                 {{ "%.2f%%"|format(form.tax_rate_STCG.data or form.tax_rate_STCG.default) }}
@@ -289,7 +289,7 @@
     
     <!-- tax_rate_LTCG -->
     <div class='user_input_registration row'>
-        {{ form.tax_rate_LTCG.label(class='col-sm-2 form-label-start-bold') }}
+        {{ form.tax_rate_LTCG.label(class='col-sm-2 form-label-start-req-bold') }}
         <div class='col-sm-8 col-md-6 col-lg-4'>
             <input type="hidden" name="tax_rate_STCG__value_hidden" id="tax_rate_STCG_value_hidden" value="">
             <span id='tax_rate_LTCG_value'>

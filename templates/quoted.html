@@ -41,8 +41,8 @@
             <div>
                 <span class='quote-currency'>1d:</span>
                 {% if company_profile['changes'] < 0 %}
-                    <span class='quote-changes quote-changes-negative'>({{ company_profile['changes'] | usd }})</span>
-                    <span class='quote-changes quote-changes-negative'>{{ '+' + ((company_profile['changes'] / (company_profile['price'] - company_profile['changes'] )) | percentage) }}</span>
+                    <span class='quote-changes quote-changes-negative me-2'>{{ company_profile['changes'] | usd }}</span>
+                    <span class='quote-changes quote-changes-negative'>{{ '-' + ((company_profile['changes'] / (company_profile['price'] - company_profile['changes'] )) | percentage) }}</span>
                 {% elif company_profile['changes'] > 0 %}
                     <span class='quote-changes quote-changes-positive'>+{{ company_profile['changes'] | usd }}</span>
                     <span class='quote-changes quote-changes-positive'>{{ '+' + ((company_profile['changes'] / (company_profile['price'] - company_profile['changes'] )) | percentage) }}</span>
