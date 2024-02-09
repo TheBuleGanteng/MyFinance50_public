@@ -2,11 +2,12 @@ from app import create_app, db as test_db
 from configs.config_testing import TestingConfig
 from datetime import date, datetime
 from flask import url_for
-from helpers import generate_unique_token
+from helpers import generate_unique_token, verify_unique_token
 from models import User, Transaction
 import pytest
 import re
 from unittest.mock import patch, MagicMock
+from urllib.parse import unquote
 import uuid
 from werkzeug.security import generate_password_hash
 
@@ -34,7 +35,7 @@ def app():
     app = create_app('testing')
     with app.app_context():
         test_db.create_all()
-        yield app  # This is where the testing happens!
+        yield app  # This is where the testing happens
         test_db.drop_all()
 
 
@@ -200,7 +201,7 @@ def delete_test_user_confirmed(email,test_app):
 
 
 # /login Test 1: login.html returns code 200
-def test_login_code_200(client):
+def test_code_200_login(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -217,7 +218,7 @@ def test_login_code_200(client):
 
 
 # /login Test 2: Happy Path: user logs in w/ valid  email address + valid password --> user redirected to / w/ success message.
-def test_login_happy_path(client):
+def test_happy_path_login(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -245,7 +246,7 @@ def test_login_happy_path(client):
 
 
 # /login Test 3: User attempts to log in w/o valid CSRF token.
-def test_login_missing_CSRF(client):
+def test_missing_CSRF_login(client):
     #db = setup_test_database()
     global test_number
     test_number += 1
@@ -277,7 +278,7 @@ def test_login_missing_CSRF(client):
 
 
 # /login Test 4: Tests for presence of CSP headers in page.
-def test_login_csp_headers(client):
+def test_csp_headers_login(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -300,7 +301,7 @@ def test_login_csp_headers(client):
 
 
 # /login Test 5: User does not submit email address
-def test_login_without_email(client):
+def test_missing_email_address_login(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -333,7 +334,7 @@ def test_login_without_email(client):
 
 
 # /login Test 6: User does not submit PW
-def test_login_without_pw(client):
+def test_missing_pw_login(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -365,10 +366,9 @@ def test_login_without_pw(client):
     print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
 
 
-
 # /login Test 7: User does not submit username or password  --> is redirected 
 # to /login and flashed message.
-def test_login_without_email_without_pw(client):
+def test_missing_email_missing_pw_login(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -401,7 +401,7 @@ def test_login_without_email_without_pw(client):
 
 
 # /login Test 8: User enters undeliverable email address.
-def test_login_undeliverable_email(client):
+def test_undeliverable_email_login(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -435,7 +435,7 @@ def test_login_undeliverable_email(client):
 
 
 # /login Test 9: User tries to log in w/ unregistered email address + correct PW
-def test_login_with_unregistered_email(client):
+def test_with_unregistered_email_login(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -469,7 +469,7 @@ def test_login_with_unregistered_email(client):
 
 
 # /login Test 10: User tries to log in w/ registered email address + invalid PW
-def test_login_with_invalid_pw(client):
+def test_with_invalid_pw_login(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -503,7 +503,7 @@ def test_login_with_invalid_pw(client):
 
 
 # /login Test 11: User tries to log in w/ unregistered email address + invalid PW
-def test_login_with_invalid_username_invalid_pw(client):
+def test_with_invalid_username_invalid_pw_login(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -537,7 +537,7 @@ def test_login_with_invalid_username_invalid_pw(client):
 
 
 # /login Test 12: User tries to log in w/ unconfirmed account
-def test_login_for_unconfirmed_user(client):
+def test_for_unconfirmed_user_login(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -591,7 +591,7 @@ def test_login_for_unconfirmed_user(client):
    
 
 # /register Test 13: register.html returns code 200
-def test_login_code_200_register(client):
+def test_code_200_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -608,7 +608,7 @@ def test_login_code_200_register(client):
 
 
 # /register Test 14: Happy path, all req. info --> sends email & user redirected to /index
-def test_register_happy_path_part_a(client):
+def test_happy_path_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -658,7 +658,7 @@ def test_register_happy_path_part_a(client):
 
 
 # /register Test 15: User attempts to log in w/o valid CSRF token.
-def test_register_missing_CSRF(client):
+def test_missing_CSRF_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -700,7 +700,7 @@ def test_register_missing_CSRF(client):
 
 
 # /register Test 16: Tests for presence of CSP headers in page.
-def test_register_csp_headers(client):
+def test_csp_headers_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -710,7 +710,7 @@ def test_register_csp_headers(client):
         # Configure the mock to do nothing
         mock_send.return_value = None
 
-        # Make a GET request to a page (e.g., the login page)
+        # Make a GET request to a page and check for status 200
         response = client.get('/register')
         assert response.status_code == 200
 
@@ -722,7 +722,7 @@ def test_register_csp_headers(client):
 
 
 # /register Test 17: Missing user email address.
-def test_register_missing_email(client):
+def test_missing_email_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -760,7 +760,7 @@ def test_register_missing_email(client):
 
 
 # /register Test 18: Missing username.
-def test_register_missing_username(client):
+def test_missing_username_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -798,7 +798,7 @@ def test_register_missing_username(client):
 
 
 # /register Test 19: Missing PW.
-def test_register_missing_pw(client):
+def test_missing_pw_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -836,7 +836,7 @@ def test_register_missing_pw(client):
 
 
 # /register Test 20: Missing PW confirmation.
-def test_register_missing_pw_confirm(client):
+def test_missing_pw_confirm_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -874,7 +874,7 @@ def test_register_missing_pw_confirm(client):
 
 
 # /register Test 21: Fails pw strength.
-def test_register_pw_strength(client):
+def test_pw_strength_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -912,7 +912,7 @@ def test_register_pw_strength(client):
 
 
 # /register Test 22: PW != PW confirmation.
-def test_register_pw_mismatch(client):
+def test_pw_mismatch_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -950,7 +950,7 @@ def test_register_pw_mismatch(client):
 
 
 # /register Test 23: User enters illegitimate email address.
-def test_register_bad_email(client):
+def test_bad_email_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -988,7 +988,7 @@ def test_register_bad_email(client):
 
 
 # /register Test 24: User enters prohibited chars.
-def test_register_prohibited_chars(client):
+def test_prohibited_chars_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1026,7 +1026,7 @@ def test_register_prohibited_chars(client):
 
 
 # /register Test 25: User enters an already-registered username.
-def test_register_duplicate_username(client):
+def test_duplicate_username_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1066,7 +1066,7 @@ def test_register_duplicate_username(client):
 
 
 # /register Test 26: User enters an already-registered email address.
-def test_register_duplicate_email(client):
+def test_duplicate_email_register(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1140,7 +1140,7 @@ def test_login_code_200_profile(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/profile')
     assert response.status_code == 200
     clear_tables(client.application)
@@ -1149,7 +1149,7 @@ def test_login_code_200_profile(client):
 
 
 # /profile Test 28: Happy path to updating profile (note: not all fields need be filled)
-def test_profile_happy_path(client):
+def test_happy_path_profile(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1173,7 +1173,7 @@ def test_profile_happy_path(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/profile')
     assert response.status_code == 200
 
@@ -1210,7 +1210,7 @@ def test_profile_happy_path(client):
 
 
 # /profile Test 29: User attempts to log in w/o valid CSRF token.
-def test_profile_missing_CSRF(client):
+def test_missing_CSRF_profile(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1234,7 +1234,7 @@ def test_profile_missing_CSRF(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/profile')
     assert response.status_code == 200
 
@@ -1274,7 +1274,7 @@ def test_profile_missing_CSRF(client):
 
 
 # /profile Test 30: Tests for presence of CSP headers in page.
-def test_profile_csp_headers(client):
+def test_csp_headers_profile(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1298,7 +1298,7 @@ def test_profile_csp_headers(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/profile')
     assert response.status_code == 200
 
@@ -1310,7 +1310,7 @@ def test_profile_csp_headers(client):
 
 
 # /profile Test 31: Failed allowed chars check on user input (using > in first name)
-def test_profile_prohibited_chars(client):
+def test_prohibited_chars_profile(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1334,7 +1334,7 @@ def test_profile_prohibited_chars(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/profile')
     assert response.status_code == 200
 
@@ -1417,7 +1417,7 @@ def test_login_code_200_pw_change(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_change')
     assert response.status_code == 200
     clear_tables(client.application)
@@ -1425,7 +1425,7 @@ def test_login_code_200_pw_change(client):
 
 
 # /pw_change Test 33: Happy path
-def test_pw_change_happy_path(client):
+def test_happy_path_pw_change(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1449,7 +1449,7 @@ def test_pw_change_happy_path(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_change')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... password_change returned code 200')
@@ -1468,7 +1468,7 @@ def test_pw_change_happy_path(client):
 
 
 # Test 34: /pw_change User attempts to log in w/o valid CSRF token.
-def test_pw_change_missing_csrf(client):
+def test_missing_csrf_pw_change(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1493,7 +1493,7 @@ def test_pw_change_missing_csrf(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_change')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... password_change returned code 200')
@@ -1512,7 +1512,7 @@ def test_pw_change_missing_csrf(client):
 
 
 # Test 35: Tests for presence of CSP headers in page.
-def test_pw_change_csp_headers(client):
+def test_csp_headers_pw_change(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1536,7 +1536,7 @@ def test_pw_change_csp_headers(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_change')
     assert response.status_code == 200
 
@@ -1546,7 +1546,7 @@ def test_pw_change_csp_headers(client):
 
 
 # Test 36: /pw_change No user email submitted
-def test_pw_change_no_user_email(client):
+def test_missing_user_email_pw_change(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1570,7 +1570,7 @@ def test_pw_change_no_user_email(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_change')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... password_change returned code 200')
@@ -1589,7 +1589,7 @@ def test_pw_change_no_user_email(client):
 
 
 # Test 37: /pw_change No current pw submitted
-def test_pw_change_no_pw(client):
+def test_missing_pw_pw_change(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1613,7 +1613,7 @@ def test_pw_change_no_pw(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_change')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... password_change returned code 200')
@@ -1632,7 +1632,7 @@ def test_pw_change_no_pw(client):
 
 
 # Test 38: /pw_change No new pw submitted
-def test_pw_change_no_new_pw(client):
+def test_missing_new_pw_pw_change(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1656,7 +1656,7 @@ def test_pw_change_no_new_pw(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_change')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... password_change returned code 200')
@@ -1675,7 +1675,7 @@ def test_pw_change_no_new_pw(client):
 
 
 # Test 39: /pw_change No new pw confirmation submitted
-def test_pw_change_no_new_pw_confirm(client):
+def test_missing_new_pw_confirm_pw_change(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1699,7 +1699,7 @@ def test_pw_change_no_new_pw_confirm(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_change')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... password_change returned code 200')
@@ -1718,7 +1718,7 @@ def test_pw_change_no_new_pw_confirm(client):
 
 
 # Test 40: /pw_change New password does not meet strength requirements
-def test_pw_change_pw_strength(client):
+def test_insufficient_pw_strength_pw_change(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1742,7 +1742,7 @@ def test_pw_change_pw_strength(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_change')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... password_change returned code 200')
@@ -1761,7 +1761,7 @@ def test_pw_change_pw_strength(client):
 
 
 # Test 41: /pw_change New password and new password confirmation don't match
-def test_pw_change_matching_pws(client):
+def test_mismatching_pws_pw_change(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1785,7 +1785,7 @@ def test_pw_change_matching_pws(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_change')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... password_change returned code 200')
@@ -1804,7 +1804,7 @@ def test_pw_change_matching_pws(client):
 
 
 # Test 42: /pw_change User-entered email is not registered in DB
-def test_pw_change_registered_email(client):
+def test_unregistered_email_pw_change(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1828,7 +1828,7 @@ def test_pw_change_registered_email(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_change')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... password_change returned code 200')
@@ -1847,7 +1847,7 @@ def test_pw_change_registered_email(client):
 
 
 # Test 43: /pw_change User entered incorrect value for current PW
-def test_pw_change_correct_current_pw(client):
+def test_incorrect_current_pw_pw_change(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1871,7 +1871,7 @@ def test_pw_change_correct_current_pw(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_change')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... password_change returned code 200')
@@ -1929,7 +1929,7 @@ def test_login_code_200_password_reset_request(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_reset_request')
     assert response.status_code == 200
     
@@ -1938,7 +1938,7 @@ def test_login_code_200_password_reset_request(client):
 
 
 # /password_reset_request Test 45: Happy path
-def test_pw_reset_req_happy_path(client):
+def test_happy_path_pw_reset_req(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -1963,7 +1963,7 @@ def test_pw_reset_req_happy_path(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_reset_request')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
@@ -1993,7 +1993,7 @@ def test_pw_reset_req_happy_path(client):
 
 
 # /pw_reset_req Test 46: User attempts to log in w/o valid CSRF token.
-def test_pw_reset_req_missing_csrf(client):
+def test_missing_csrf_pw_reset_req(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -2013,7 +2013,7 @@ def test_pw_reset_req_missing_csrf(client):
 
 
 # /pw_reset_req Test 47: Tests for presence of CSP headers in page.
-def test_pw_reset_req_csp_headers(client):
+def test_missing_csp_headers_pw_reset_req(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -2038,7 +2038,7 @@ def test_pw_reset_req_csp_headers(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_reset_request')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
@@ -2056,7 +2056,7 @@ def test_pw_reset_req_csp_headers(client):
 
 
 # /pw_reset_req Test 48: User submitted no value for email
-def test_pw_reset_req_no_email_submitted(client):
+def test_missing_email_pw_reset_req(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -2081,7 +2081,7 @@ def test_pw_reset_req_no_email_submitted(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_reset_request')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
@@ -2106,7 +2106,7 @@ def test_pw_reset_req_no_email_submitted(client):
 
 
 # Test 49: /pw_reset_req User submitted prohibited chars
-def test_pw_reset_req_invalid_chars(client):
+def test_invalid_chars_pw_reset_req(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -2131,7 +2131,7 @@ def test_pw_reset_req_invalid_chars(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_reset_request')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
@@ -2155,7 +2155,7 @@ def test_pw_reset_req_invalid_chars(client):
 
 
 # Test 50: /pw_reset_req User submits an invalid email address format.
-def test_pw_reset_req_valid_email_format(client):
+def test_invalid_email_format_pw_reset_req(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -2180,7 +2180,7 @@ def test_pw_reset_req_valid_email_format(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_reset_request')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
@@ -2204,7 +2204,7 @@ def test_pw_reset_req_valid_email_format(client):
 
 
 # Test 51: /pw_reset_req User-entered email not in database
-def test_pw_reset_req_unregistered_email(client):
+def test_unregistered_email_pw_reset_req(client):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -2229,7 +2229,7 @@ def test_pw_reset_req_unregistered_email(client):
     assert response.request.path == '/'
     print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
     
-    # Make a GET request to a page (e.g., the login page)
+    # Make a GET request to a page and check for status 200
     response = client.get('/password_reset_request')
     assert response.status_code == 200
     print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
@@ -2271,7 +2271,7 @@ def test_pw_reset_req_unregistered_email(client):
 
 
 # /pw_reset_new Test 52: login.html returns code 200
-def test_pw_reset_req_new_code_200(client, app):
+def test_code_200_pw_reset_req_new(client, app):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -2294,7 +2294,7 @@ def test_pw_reset_req_new_code_200(client, app):
             'csrf_token': csrf_token_req,
             'email': test_user.email
         }, follow_redirects=True)
-        assert response.status_code == 200  # or other appropriate status code
+        assert response.status_code == 200
         mock_send.assert_called_once()
 
     # Step 3: Generate a real token for the test user
@@ -2313,7 +2313,7 @@ def test_pw_reset_req_new_code_200(client, app):
 
 
 # /pw_reset_new Test 53: Happy path
-def test_pw_reset_new_happy_path(client, app):
+def test_happy_path_pw_reset_new(client, app):
     global test_number
     test_number += 1
     print(f'{get_execution_order()} -- running test number: { test_number }... test started')
@@ -2336,7 +2336,7 @@ def test_pw_reset_new_happy_path(client, app):
             'csrf_token': csrf_token_req,
             'email': test_user.email
         }, follow_redirects=True)
-        assert response.status_code == 200  # or other appropriate status code
+        assert response.status_code == 200
         mock_send.assert_called_once()
 
     # Step 3: Generate a real token for the test user
@@ -2365,3 +2365,1836 @@ def test_pw_reset_new_happy_path(client, app):
     
     clear_tables(client.application)
     print(f'{get_execution_order()} -- running test number: {test_number}... test completed')
+
+
+# /pw_reset/new Test 54: User attempts to log in w/o valid CSRF token.
+def test_missing_csrf_pw_reset_new(client, app):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    # Create a new test user
+    test_user = insert_test_user_confirmed(client.application)
+    
+    # Mock the email sending function
+    with patch('app.send_email') as mock_send:
+        
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/password_reset_request')
+        assert response.status_code == 200
+
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/password_reset_request', data={
+            'csrf_token': csrf_token_req,
+            'email': test_user.email
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        mock_send.assert_called_once()
+
+    # Step 3: Generate a real token for the test user
+    real_token = generate_real_token_for_test_user(test_user, app)
+
+    # Step 4: User access pw_reset_new with a valid token
+    with client.application.test_request_context():
+        reset_url = url_for('password_reset_request_new', token=real_token)
+
+    # Step 5: Get the CSRF token from the reset pag    
+    get_response = client.get(reset_url)
+    assert get_response.status_code == 200
+    
+    html = get_response.data.decode()
+    csrf_token_reset = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    # Step 6: Submit the new password and confirmation    
+    response = client.post(reset_url, data={
+        'csrf_token': 'invalid_CSRF',
+        'password': 'test_password123',  # Using the original unhashed password as new password
+        'password_confirmation': 'test_password123'
+    }, follow_redirects=True)
+
+    # Verify that the response is a redirect to password_reset_request_new
+    decoded_token_url = unquote(reset_url)
+    assert response.request.path == decoded_token_url
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: {test_number}... test completed')
+
+
+# /pw_reset/new Test 55: Tests for presence of CSP headers in page.
+def test_csp_headers_pw_reset_new(client, app):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    # Create a new test user
+    test_user = insert_test_user_confirmed(client.application)
+    
+    # Mock the email sending function
+    with patch('app.send_email') as mock_send:
+        
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/password_reset_request')
+        assert response.status_code == 200
+
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/password_reset_request', data={
+            'csrf_token': csrf_token_req,
+            'email': test_user.email
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        mock_send.assert_called_once()
+
+    # Step 3: Generate a real token for the test user
+    real_token = generate_real_token_for_test_user(test_user, app)
+
+    # Step 4: User access pw_reset_new with a valid token
+    with client.application.test_request_context():
+        reset_url = url_for('password_reset_request_new', token=real_token)
+
+    # Step 5: Get the CSRF token from the reset pag    
+    get_response = client.get(reset_url)
+    assert get_response.status_code == 200
+    
+    html = get_response.data.decode()
+    csrf_token_reset = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    # Step 6: Submit the new password and confirmation    
+    response = client.post(reset_url, data={
+        'csrf_token': csrf_token_reset,
+        'password': 'test_password123',  # Using the original unhashed password as new password
+        'password_confirmation': 'test_password123'
+    }, follow_redirects=True)
+
+    # Check if CSP headers are set correctly in the response
+    csp_header = response.headers.get('Content-Security-Policy')
+    assert csp_header is not None
+
+    # Verify that the response is a redirect to the home page
+    assert response.request.path == '/login'
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /pw_reset/new Test 56: Invalid token- user submits invalid token via GET 
+def test_bad_token_get_pw_reset_new(client, app):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    # Create a new test user
+    test_user = insert_test_user_confirmed(client.application)
+    
+    # Mock the email sending function
+    with patch('app.send_email') as mock_send:
+        
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/password_reset_request')
+        assert response.status_code == 200
+
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/password_reset_request', data={
+            'csrf_token': csrf_token_req,
+            'email': test_user.email
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        mock_send.assert_called_once()
+
+    # Step 3: Generate a real token for the test user
+    real_token = generate_real_token_for_test_user(test_user, app)
+
+    # Step 4: User access pw_reset_new with a valid token
+    with client.application.test_request_context():
+        reset_url = url_for('password_reset_request_new', token='invalid_token')
+
+    # Step 5: Get the CSRF token from the reset pag    
+    get_response = client.get(reset_url)
+    assert get_response.status_code == 302
+    
+    # Verify that the response is a redirect to password_reset_request_new
+    assert response.request.path == '/login'
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: {test_number}... test completed')
+
+
+# /pw_reset/new Test 57: Missing value for pw_reset_new
+def test_missing_pw_reset_new_pw_reset_new(client, app):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    # Create a new test user
+    test_user = insert_test_user_confirmed(client.application)
+    
+    # Mock the email sending function
+    with patch('app.send_email') as mock_send:
+        
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/password_reset_request')
+        assert response.status_code == 200
+
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/password_reset_request', data={
+            'csrf_token': csrf_token_req,
+            'email': test_user.email
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        mock_send.assert_called_once()
+
+    # Step 3: Generate a real token for the test user
+    real_token = generate_real_token_for_test_user(test_user, app)
+
+    # Step 4: User access pw_reset_new with a valid token
+    with client.application.test_request_context():
+        reset_url = url_for('password_reset_request_new', token=real_token)
+
+    # Step 5: Get the CSRF token from the reset pag    
+    get_response = client.get(reset_url)
+    assert get_response.status_code == 200
+    
+    html = get_response.data.decode()
+    csrf_token_reset = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    # Step 6: Submit the new password and confirmation    
+    response = client.post(reset_url, data={
+        'csrf_token': csrf_token_reset,
+        'password': ' ',  # Using the original unhashed password as new password
+        'password_confirmation': 'test_password123'
+    }, follow_redirects=True)
+
+    # Verify that the response is a redirect to password_reset_request_new
+    decoded_token_url = unquote(reset_url)
+    assert response.request.path == decoded_token_url
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: {test_number}... test completed')
+
+
+# /pw_reset/new Test 58: Missing value for pw_reset_new_confirm
+def test_missing_pw_reset_new_confirm_pw_reset_new(client, app):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    # Create a new test user
+    test_user = insert_test_user_confirmed(client.application)
+    
+    # Mock the email sending function
+    with patch('app.send_email') as mock_send:
+        
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/password_reset_request')
+        assert response.status_code == 200
+
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/password_reset_request', data={
+            'csrf_token': csrf_token_req,
+            'email': test_user.email
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        mock_send.assert_called_once()
+
+    # Step 3: Generate a real token for the test user
+    real_token = generate_real_token_for_test_user(test_user, app)
+
+    # Step 4: User access pw_reset_new with a valid token
+    with client.application.test_request_context():
+        reset_url = url_for('password_reset_request_new', token=real_token)
+
+    # Step 5: Get the CSRF token from the reset pag    
+    get_response = client.get(reset_url)
+    assert get_response.status_code == 200
+    
+    html = get_response.data.decode()
+    csrf_token_reset = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    # Step 6: Submit the new password and confirmation    
+    response = client.post(reset_url, data={
+        'csrf_token': csrf_token_reset,
+        'password': 'test_password123',
+        'password_confirmation': ' '
+    }, follow_redirects=True)
+
+    # Verify that the response is a redirect to password_reset_request_new
+    decoded_token_url = unquote(reset_url)
+    assert response.request.path == decoded_token_url
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: {test_number}... test completed')
+
+
+# /pw_reset/new Test 59: Missing value for pw_reset_new and pw_reset_new_confirm
+def test_missing_pw_reset_new_and_confirm_pw_reset_new(client, app):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    # Create a new test user
+    test_user = insert_test_user_confirmed(client.application)
+    
+    # Mock the email sending function
+    with patch('app.send_email') as mock_send:
+        
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/password_reset_request')
+        assert response.status_code == 200
+
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/password_reset_request', data={
+            'csrf_token': csrf_token_req,
+            'email': test_user.email
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        mock_send.assert_called_once()
+
+    # Step 3: Generate a real token for the test user
+    real_token = generate_real_token_for_test_user(test_user, app)
+
+    # Step 4: User access pw_reset_new with a valid token
+    with client.application.test_request_context():
+        reset_url = url_for('password_reset_request_new', token=real_token)
+
+    # Step 5: Get the CSRF token from the reset pag    
+    get_response = client.get(reset_url)
+    assert get_response.status_code == 200
+    
+    html = get_response.data.decode()
+    csrf_token_reset = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    # Step 6: Submit the new password and confirmation    
+    response = client.post(reset_url, data={
+        'csrf_token': csrf_token_reset,
+        'password': ' ',
+        'password_confirmation': ' '
+    }, follow_redirects=True)
+
+    # Verify that the response is a redirect to password_reset_request_new
+    decoded_token_url = unquote(reset_url)
+    assert response.request.path == decoded_token_url
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: {test_number}... test completed')
+
+
+# /pw_reset/new Test 60: User enters insufficiently strong PW
+def test_weak_new_pw_pw_reset_new(client, app):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    # Create a new test user
+    test_user = insert_test_user_confirmed(client.application)
+    
+    # Mock the email sending function
+    with patch('app.send_email') as mock_send:
+        
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/password_reset_request')
+        assert response.status_code == 200
+
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/password_reset_request', data={
+            'csrf_token': csrf_token_req,
+            'email': test_user.email
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        mock_send.assert_called_once()
+
+    # Step 3: Generate a real token for the test user
+    real_token = generate_real_token_for_test_user(test_user, app)
+
+    # Step 4: User access pw_reset_new with a valid token
+    with client.application.test_request_context():
+        reset_url = url_for('password_reset_request_new', token=real_token)
+
+    # Step 5: Get the CSRF token from the reset pag    
+    get_response = client.get(reset_url)
+    assert get_response.status_code == 200
+    
+    html = get_response.data.decode()
+    csrf_token_reset = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    # Step 6: Submit the new password and confirmation    
+    response = client.post(reset_url, data={
+        'csrf_token': csrf_token_reset,
+        'password': 'a',
+        'password_confirmation': 'a'
+    }, follow_redirects=True)
+
+    # Verify that the response is a redirect to password_reset_request_new
+    decoded_token_url = unquote(reset_url)
+    assert response.request.path == decoded_token_url
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: {test_number}... test completed')
+
+
+# /pw_reset/new Test 61: Mismatching pw_reset_new and pw_reset_new_confirm
+def test_missing_pw_new_and_missing_pw_new_confirm_pw_reset_new(client, app):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    # Create a new test user
+    test_user = insert_test_user_confirmed(client.application)
+    
+    # Mock the email sending function
+    with patch('app.send_email') as mock_send:
+        
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/password_reset_request')
+        assert response.status_code == 200
+
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/password_reset_request', data={
+            'csrf_token': csrf_token_req,
+            'email': test_user.email
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        mock_send.assert_called_once()
+
+    # Step 3: Generate a real token for the test user
+    real_token = generate_real_token_for_test_user(test_user, app)
+
+    # Step 4: User access pw_reset_new with a valid token
+    with client.application.test_request_context():
+        reset_url = url_for('password_reset_request_new', token=real_token)
+
+    # Step 5: Get the CSRF token from the reset pag    
+    get_response = client.get(reset_url)
+    assert get_response.status_code == 200
+    
+    html = get_response.data.decode()
+    csrf_token_reset = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    # Step 6: Submit the new password and confirmation    
+    response = client.post(reset_url, data={
+        'csrf_token': csrf_token_reset,
+        'password': 'test_password123',
+        'password_confirmation': 'test_password1234'
+    }, follow_redirects=True)
+
+    # Verify that the response is a redirect to password_reset_request_new
+    decoded_token_url = unquote(reset_url)
+    assert response.request.path == decoded_token_url
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: {test_number}... test completed')
+
+
+# /pw_reset/new Test 62: New password matches old password
+def test_pw_new_pw_matches_old_pw_pw_reset_new(client, app):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    # Create a new test user
+    test_user = insert_test_user_confirmed(client.application)
+    
+    # Mock the email sending function
+    with patch('app.send_email') as mock_send:
+        
+        # Step 1: Get the CSRF token from the password reset request page
+        response = client.get('/password_reset_request')
+        assert response.status_code == 200
+
+        html = response.data.decode()
+        csrf_token_req = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+        # Step 2: User provided valid email address to /pw_reset_req
+        response = client.post('/password_reset_request', data={
+            'csrf_token': csrf_token_req,
+            'email': test_user.email
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        mock_send.assert_called_once()
+
+    # Step 3: Generate a real token for the test user
+    real_token = generate_real_token_for_test_user(test_user, app)
+
+    # Step 4: User access pw_reset_new with a valid token
+    with client.application.test_request_context():
+        reset_url = url_for('password_reset_request_new', token=real_token)
+
+    # Step 5: Get the CSRF token from the reset pag    
+    get_response = client.get(reset_url)
+    assert get_response.status_code == 200
+    
+    html = get_response.data.decode()
+    csrf_token_reset = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    # Step 6: Submit the new password and confirmation    
+    response = client.post(reset_url, data={
+        'csrf_token': csrf_token_reset,
+        'password': test_password_unhashed,
+        'password_confirmation': test_password_unhashed
+    }, follow_redirects=True)
+
+    # Verify that the response is a redirect to password_reset_request_new
+    decoded_token_url = unquote(reset_url)
+    assert response.request.path == decoded_token_url
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: {test_number}... test completed')
+
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Testing route: /register_confirmation
+# Summary: 
+# Test 63: /register_confirmation Happy path
+
+
+# Test 63: /register_confirmation Happy path
+def test_happy_path_register_confirmation(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_unconfirmed(client.application)
+
+    # Mock verify_reset_token to return the user_id of the created test user
+    with patch('app.verify_unique_token') as mock_verify:
+        mock_verify.return_value = {'id': test_user.id}
+
+        with client.application.test_request_context():
+            # Create the URL with a 'valid' token
+            confirmation_url = url_for('register_confirmation', token='valid_token')
+        
+        # Simulate the GET request
+        response = client.get(confirmation_url)
+
+        # Verify that the response is a redirect (status code 302)
+        assert response.status_code == 302
+
+        # Generate the expected redirect URL
+        with client.application.test_request_context():
+            expected_url = url_for('index', _external=False)
+
+        # Check that the response redirects to the index page
+        assert expected_url in response.location
+        clear_tables(client.application)
+        print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Testing route: /buy
+# Summary: 
+# Test 64: buy.html returns code 200
+# Test 65: Happy path
+# Test 66: User attempts to submit w/o valid CSRF token.    
+# Test 67: Tests for presence of CSP headers in page.
+# Test 68: Missing value for symbol
+# Test 69: Invalid value for symbol
+# Test 70: Missing value for shares
+# Test 71: Invalid value for shares
+# Test 72: Insufficient cash for purchase
+
+
+# /buy Test 64: returns code 200
+def test_login_code_200_buy(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /buy Test 65: Happy path
+def test_happy_path_buy(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+    
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 1,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /buy Test 66: User attempts to submit w/o valid CSRF token.
+def test_missing_csrf_buy(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... returned code 200')
+
+    response = client.post('/buy', data={
+        'csrf_token': 'invalid_token',
+        'symbol': 'AAPL',
+        'shares': '1',
+    }, follow_redirects=True) 
+    
+    assert response.request.path == '/buy'
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /buy Test 67: Tests for presence of CSP headers in page.
+def test_csp_headers_buy(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+
+    # Check if CSP headers are set correctly in the response
+    csp_header = response.headers.get('Content-Security-Policy')
+    assert csp_header is not None
+
+
+# /buy Test 68: Missing value for symbol.
+def test_missing_symbol_buy(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+    
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': ' ',
+        'shares': 1,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/buy'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /buy Test 69: Invalid value for symbol
+def test_invalid_symbol_buy(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'nmjhjkljn',
+        'shares': 1,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/buy'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /buy Test 70: Missing value for shares
+def test_missing_shares_buy(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': ' ',
+    }, follow_redirects=True)
+
+    assert response.request.path == '/buy'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /buy Test 71: Invalid value for shares
+def test_invalid_shares_buy(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 'shares',
+    }, follow_redirects=True)
+
+    assert response.request.path == '/buy'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /buy Test 72: Insufficient cash for purchase
+def test_insufficient_cash_buy(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': '10000',
+    }, follow_redirects=True)
+
+    assert response.request.path == '/buy'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Testing route: /sell
+# Summary: 
+# Test 73: sell.html returns code 200
+# Test 74: Happy path
+# Test 75: User attempts to submit w/o valid CSRF token.    
+# Test 76: Tests for presence of CSP headers in page.
+# Test 77: Missing value for symbol
+# Test 78: Invalid value for symbol
+# Test 79: User tries to sell symbol not already owned
+# Test 80: Missing value for shares
+# Test 81: Invalid value for shares
+# Test 82: User tries to sell more shares than is owned
+
+
+# /sell Test 73: returns code 200
+def test_login_code_200_sell(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/sell')
+    assert response.status_code == 200
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /sell Test 74: Happy path
+def test_happy_path_sell(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 10,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected')
+
+    # Make a GET request to a page and check for status 200
+    response = client.get('/sell')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/sell', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 1,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /sell Test 75: User attempts to submit w/o valid CSRF token.
+def test_missing_csrf_sell(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 10,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected')
+
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 10,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected')
+
+    # Make a GET request to a page and check for status 200
+    response = client.get('/sell')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... returned code 200')
+
+    response = client.post('/sell', data={
+        'csrf_token': 'invalid_token',
+        'symbol': 'AAPL',
+        'shares': '1',
+    }, follow_redirects=True) 
+    
+    assert response.request.path == '/sell'
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /sell Test 76: Tests for presence of CSP headers in page.
+def test_csp_headers_sell(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 10,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/sell')
+    assert response.status_code == 200
+
+    # Check if CSP headers are set correctly in the response
+    csp_header = response.headers.get('Content-Security-Policy')
+    assert csp_header is not None
+
+
+# /sell Test 77: Missing value for symbol.
+def test_missing_symbol_sell(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 10,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected')
+
+    # Make a GET request to a page and check for status 200
+    response = client.get('/sell')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/sell', data={
+        'csrf_token': csrf_token,
+        'symbol': ' ',
+        'shares': 1,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/sell'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /sell Test 78: Invalid value for symbol
+def test_invalid_symbol_sell(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 10,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected')
+
+    # Make a GET request to a page and check for status 200
+    response = client.get('/sell')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/sell', data={
+        'csrf_token': csrf_token,
+        'symbol': 'nmjhjkljn',
+        'shares': 1,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/sell'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /sell Test 79: User tries to sell symbol not already owned
+def test_symbol_not_owned_sell(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 10,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected')
+
+    # Make a GET request to a page and check for status 200
+    response = client.get('/sell')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/sell', data={
+        'csrf_token': csrf_token,
+        'symbol': 'GS',
+        'shares': 1,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/sell'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /sell Test 80: Missing value for shares
+def test_missing_shares_sell(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 10,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected')
+
+    # Make a GET request to a page and check for status 200
+    response = client.get('/sell')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/sell', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': ' ',
+    }, follow_redirects=True)
+
+    assert response.request.path == '/sell'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /sell Test 81: Invalid value for shares
+def test_invalid_shares_sell(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 10,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/sell')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/sell', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 'shares',
+    }, follow_redirects=True)
+
+    assert response.request.path == '/sell'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /sell Test 82: Selling more shares than is owned
+def test_more_shares_than_owned_sell(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+
+    # Make a GET request to a page
+    response = client.get('/buy')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/buy', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': 10,
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected')
+
+    # Make a GET request to a page and check for status 200
+    response = client.get('/sell')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/sell', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+        'shares': '11',
+    }, follow_redirects=True)
+
+    assert response.request.path == '/sell'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Testing route: /quote
+# Summary: 
+# Test 83: quote.html returns code 200
+# Test 84: Happy path
+# Test 85: User attempts to submit w/o valid CSRF token.    
+# Test 86: Tests for presence of CSP headers in page.
+# Test 87: Missing value for symbol
+# Test 88: Invalid value for symbol
+
+
+# /quote Test 83: returns code 200
+def test_login_code_200_quote(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/quote')
+    assert response.status_code == 200
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /quote Test 74: Happy path
+def test_happy_path_quote(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/quote')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/quote', data={
+        'csrf_token': csrf_token,
+        'symbol': 'AAPL',
+    }, follow_redirects=True)
+
+    # Check if response contains unique content from `quoted.html`
+    assert 'Apple' in response.data.decode()
+
+    print(f'{get_execution_order()} -- running test number: { test_number }... quoted.html rendered')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /quote Test 75: User attempts to submit w/o valid CSRF token.
+def test_missing_csrf_quote(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+    
+    # Make a GET request to a page and check for status 200
+    response = client.get('/quote')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... returned code 200')
+
+    response = client.post('/quote', data={
+        'csrf_token': 'invalid_token',
+        'symbol': 'AAPL',
+    }, follow_redirects=True) 
+    
+    assert response.request.path == '/quote'
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /quote Test 76: Tests for presence of CSP headers in page.
+def test_csp_headers_quote(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+        
+    # Make a GET request to a page and check for status 200
+    response = client.get('/quote')
+    assert response.status_code == 200
+
+    # Check if CSP headers are set correctly in the response
+    csp_header = response.headers.get('Content-Security-Policy')
+    assert csp_header is not None
+
+
+# /quote Test 77: Missing value for symbol.
+def test_missing_symbol_quote(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+
+    # Make a GET request to a page and check for status 200
+    response = client.get('/quote')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/quote', data={
+        'csrf_token': csrf_token,
+        'symbol': ' ',
+    }, follow_redirects=True)
+
+    assert response.request.path == '/quote'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')
+
+
+# /quote Test 78: Invalid value for symbol
+def test_invalid_symbol_quote(client):
+    global test_number
+    test_number += 1
+    print(f'{get_execution_order()} -- running test number: { test_number }... test started')
+
+    test_user = insert_test_user_confirmed(client.application)
+    if not test_user:
+        print(f'{get_execution_order()} -- running test number: { test_number }... failed to generate test_user')
+        return
+
+    response = client.get('/login')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/login', data={
+        'csrf_token': csrf_token,
+        'email': test_user.email,
+        'password': test_password_unhashed
+    }, follow_redirects=True)
+    assert response.request.path == '/'
+    print(f'{get_execution_order()} -- running test number: { test_number }... successfully logged in test_user')
+
+    # Make a GET request to a page and check for status 200
+    response = client.get('/quote')
+    assert response.status_code == 200
+    print(f'{get_execution_order()} -- running test number: { test_number }... status code is 200')
+    
+    html = response.data.decode()
+    csrf_token = re.search('name="csrf_token" type="hidden" value="(.+?)"', html).group(1)
+
+    response = client.post('/quote', data={
+        'csrf_token': csrf_token,
+        'symbol': 'nmjhjkljn',
+    }, follow_redirects=True)
+
+    assert response.request.path == '/quote'
+    print(f'{get_execution_order()} -- running test number: { test_number }... user redirected to /login')
+    
+    clear_tables(client.application)
+    print(f'{get_execution_order()} -- running test number: { test_number }... test completed')

@@ -38,7 +38,7 @@
             {{ form.symbol(class='form-control', id='symbol', autocomplete='off', autofocus=True, placeholder='Symbol') }}
             {% if form.symbol.errors %}
                 <div class='text-danger mt-2'>
-                    {% for error in form.sybol.errors %}
+                    {% for error in form.symbol.errors %}
                         {{ error }}
                     {% endfor %}
                 </div>

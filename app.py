@@ -1,27 +1,21 @@
-import base64
 from Custom_FlaskWtf_Filters_and_Validators.validators_generic import pw_strength, pw_req_length, pw_req_letter, pw_req_num, pw_req_symbol, user_input_allowed_symbols
-from datetime import datetime
-from email.message import EmailMessage
 from extensions import db, csrf, talisman, load_dotenv  
 from flask import Flask, flash, jsonify, make_response, redirect, render_template, request, session, url_for
-from flask_babel import Babel, format_decimal
-from flask_mail import Mail, Message
-from flask_migrate import Migrate
-from flask_session import Session
+#from flask_migrate import Migrate
+#from flask_session import Session
 from forms.forms import BuyForm, FilterTransactionHistory, LoginForm, PasswordChangeForm, PasswordResetRequestForm, PasswordResetRequestNewForm, ProfileForm, QuoteForm, RegisterForm, SellForm
-import google.auth
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from helpers import apology, company_data, date_time, fmp_key, generate_nonce, generate_unique_token, login_required, number_format, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, send_email, update_listings, usd, verify_unique_token
-import logging
-from logging.handlers import RotatingFileHandler
-import os
-import re
-from sqlalchemy import func, or_
-import sys
-import time
-from urllib.parse import unquote
-from werkzeug.security import check_password_hash, generate_password_hash
+#import google.auth
+#from googleapiclient.errors import HttpError
+from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, sys, time, unquote, update_listings, usd, verify_unique_token
+#import logging
+#from logging.handlers import RotatingFileHandler
+#import os
+#import re
+#from sqlalchemy import func, or_
+#import sys
+#import time
+#from urllib.parse import unquote
+#from werkzeug.security import check_password_hash, generate_password_hash
 
 
 def create_app(config_name=None):    
@@ -112,7 +106,7 @@ def create_app(config_name=None):
 
         # Step 3: Call the function to create the portfolio object for the user
         portfolio = process_user_transactions(user)
-        print(f'running /index_detail ... for user {user} ... portfolio.cash is: { portfolio.cash }')
+        print(f'running / ... for user {user} ... portfolio.cash is: { portfolio.cash }')
 
         # Step 4: Render index.html and pass in portfolio, cash, total_portfolio, username
         return render_template('index.html', user=user, portfolio=portfolio)
@@ -132,8 +126,8 @@ def create_app(config_name=None):
         
         # Step 2: Handle if no id (unlikely).
         if not user:
-            print(f'running /index_detail ...  error 2.0: no user data found for session[user] of: { session["user"] }')
-            session['temp_flash'] = 'Error 2.0: User not found. Please log in again.'
+            print(f'running /index_detail ...  Error: no user data found for session[user] of: { session["user"] }')
+            session['temp_flash'] = 'Error: User not found. Please log in again.'
             return redirect(url_for('login'))
         print(f'running /index_detail...  user is: { user }')
 
@@ -150,7 +144,7 @@ def create_app(config_name=None):
     @login_required
     def buy():
         print(f'running /buy ...  starting /buy ')
-        print(f'running /bcuy... database URL is: { os.path.abspath("finance.sqlite") }')
+        print(f'running /buy... database URL is: { os.path.abspath("finance.sqlite") }')
         print(f'running /buy ... session.get(user) is: { session.get("user", None) }')
         print(f'running /buy ... CSRF token is: { session.get("csrf_token", None) }')
 
@@ -163,7 +157,7 @@ def create_app(config_name=None):
             if form.validate_on_submit():
                 print(f'running /buy ... user submitted via post and user input passed form validation')
                 user = db.session.query(User).filter_by(id= session['user']).scalar()
-                #print(f'running /buy ... retrieved user object from DB: { user }')
+                print(f'running /buy ... retrieved user object from DB: { user }')
                                 
                 # Step 1.1.1: Pull in the user inputs from buy.html
                 symbol = form.symbol.data
@@ -178,17 +172,23 @@ def create_app(config_name=None):
 
                 # Step 1.1.3: Handle if check_valid_shares(symbol, shares) failed
                 if result['status'] == 'error':
-                    print(f'running /buy ...  error 1.1.3 (check_valid_shares failed): check_valid_shares resulted with status: { result["status"] } and message: {  result["message"] }. Test failed. ')
+                    print(f'running /buy ...  Error 1.1.3 (check_valid_shares failed): check_valid_shares resulted with status: { result["status"] } and message: {  result["message"] }. Test failed. ')
                     flash(f'Error: { result["message"]} ')
                                                              
-                # Step 1.1.4: Handle if check_valid_shares(symbol, shares) failed
-                process_purchase(symbol=symbol, shares=shares, user=user, result=result)
+                try:
+                    # Step 1.1.4: Handle if check_valid_shares(symbol, shares) failed
+                    process_purchase(symbol=symbol, shares=shares, user=user, result=result)
 
-                # Step 1.1.6: Flash success message and redirect to /
-                print(f'running /buy... purchase successful, redirecting to / ')
-                flash("Share purchase processed successfully!")
-                time.sleep(1)
-                return redirect(url_for('index'))
+                    # Step 1.1.6: Flash success message and redirect to /
+                    print(f'running /buy... purchase successful, redirecting to / ')
+                    flash("Share purchase processed successfully!")
+                    time.sleep(1)
+                    return redirect(url_for('index'))
+                
+                except KeyError as e:
+                    print(f'running /buy... Error {e}. Unable to run process_purchase(), flashing error and returning to /buy')
+                    flash(f'running /buy ...  Error: Invalid symbol. Please try again.')
+                    return redirect('/buy')
 
             # Step 1.2: Handle submission via post + user input fails form validation
             else:
@@ -243,12 +243,12 @@ def create_app(config_name=None):
 
     # Returns a dict (status accessed via status = result['status']).
     def check_valid_shares(user_input_symbol, user_input_shares, transaction_type):
-        #print(f'running /check_valid_shares... user_input_shares (part 1) is: { user_input_shares }')
-        print(f'running /check_valid_shares... transaction_type is: { transaction_type }')
+        #print(f'running /check_valid_shares... user_input_shares is: { user_input_shares }')
+        #print(f'running /check_valid_shares... transaction_type is: { transaction_type }')
         
         # Test 1: Ensure user_input_shares is a valid stock symbol
         if check_valid_symbol(user_input_symbol) == None:
-            #print(f'running /check_valid_shares... user entered the following invalid symbol { user_input_symbol }. Test failed.')
+            print(f'running /check_valid_shares... user entered the following invalid symbol { user_input_symbol }. Test failed.')
             return {'status': 'error', 'message': 'Invalid stock symbol entered.'}
         
         # Test 2: Ensure user_input_shares is a positive integer (positive or negative)
@@ -270,9 +270,9 @@ def create_app(config_name=None):
             # Step 4: Query the API to get an updated price for user_input_symbol
             symbol_data = company_data(user_input_symbol, fmp_key)
             transaction_value_per_share = round(symbol_data['price'], 2)
-            print(f'running /check_valid_shares... transaction_value_per_share is: { transaction_value_per_share }')
+            #print(f'running /check_valid_shares... transaction_value_per_share is: { transaction_value_per_share }')
             transaction_value_total = round(user_input_shares * transaction_value_per_share, 2)
-            print(f'running /check_valid_shares... transaction_value_total is: { transaction_value_total }')
+            #print(f'running /check_valid_shares... transaction_value_total is: { transaction_value_total }')
 
             # Step 3: Commence logic if user is buying shares (sufficient cash to complete purchase?)
             if transaction_type == 'BOT':
@@ -280,7 +280,7 @@ def create_app(config_name=None):
                 
                 # Step 3.1: Test if user has sufficient cash to cover the share purchase
                 if user.cash < transaction_value_total:
-                    #print(f'running /check_valid_shares... user: {user} has insufficient cash to complete purchase. Test failed.')
+                    print(f'running /check_valid_shares... user: {user} has insufficient cash to complete purchase. Test failed.')
                     return {'status': 'error', 'message': f'Current cash balance of { usd(user.cash) } is insufficient to complete purchase costing { usd(transaction_value_total) }'}
                 
                 else:
@@ -289,18 +289,18 @@ def create_app(config_name=None):
             
             # Step 4: Commence logic if user is selling shares (sufficient shares to complete sale?)
             elif transaction_type == 'SLD':
-                #print(f'running /check_valid_shares... user: {user} is trying to sell shares')
+                print(f'running /check_valid_shares... user: {user} is trying to sell shares')
                 
                 # Step 4.1: Test if user has sufficient shares to sell
                 total_shares_owned = db.session.query(func.sum(Transaction.shares_outstanding))\
                     .filter(Transaction.user_id == session.get('user'), 
                     Transaction.symbol == user_input_symbol,
                     Transaction.type == 'BOT').scalar() or 0
-                print(f'running /check_valid_shares... total_shares_owned is: { total_shares_owned }')
+                #print(f'running /check_valid_shares... total_shares_owned is: { total_shares_owned }')
                 
                 # Step 4.2: If user is trying to sell more shares than owned, test fails
                 if user_input_shares > total_shares_owned:
-                    #print(f'running /check_valid_shares... user: {user} entered more shares than owned: { total_shares_owned}. Test failed')
+                    print(f'running /check_valid_shares... user: {user} entered more shares than owned: { total_shares_owned}. Test failed')
                     return {'status': 'error', 'message': f'You cannot sell more than your current holdings of { total_shares_owned } shares.'}
                 
                 # Step 4.3: If user is trying to sell more shares than owned, test passes
@@ -389,13 +389,13 @@ def create_app(config_name=None):
         try:
             user_input = user_input.upper()
             listing = db.session.query(Listing).filter_by(symbol=user_input).first()
-            print(f'running /check_valid_symbol ... listing is: { listing }')
+            #print(f'running /check_valid_symbol ... listing is: { listing }')
 
             if listing == None:
-                print(f'running /check_valid_symbol ... user_input is not a registered email: { user_input }')
+                print(f'running /check_valid_symbol ... user_input is not a valid symbol: { user_input }')
                 return 'False' if not is_internal_call else None
             else:
-                print(f'running /check_valid_symbol ... user_input is a valid stock symbol: { user_input }')
+                #print(f'running /check_valid_symbol ... user_input is a valid symbol: { user_input }')
                 return 'True' if not is_internal_call else listing
         
         except Exception as e:
@@ -451,10 +451,10 @@ def create_app(config_name=None):
     def check_username_registered(user_input, is_internal_call=False):
         user = db.session.query(User).filter_by(username=user_input).scalar()
         if user:
-            print(f'running /check_username_registered... user_input is a registered username: { user_input }')
+            #print(f'running /check_username_registered... user_input is a registered username: { user_input }')
             return 'True' if not is_internal_call else True
         else:
-            print(f'running /check_username_registered... user_input is not a registered username: { user_input }')
+            #print(f'running /check_username_registered... user_input is not a registered username: { user_input }')
             return 'False' if not is_internal_call else False
            
 # -----------------------------------------------------------------------
@@ -568,7 +568,7 @@ def create_app(config_name=None):
             
             # Step 2.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
-                print(f'running /password_change ... User submitted via post and user input passed form validation')
+                print(f'running /login ... User submitted via post and user input passed form validation')
                 
                 # Step 2.1.1: Pull in email and password from form and pull user item from DB.
                 email = form.email.data
@@ -684,7 +684,7 @@ def create_app(config_name=None):
                 for field, errors in form.errors.items():
                     print(f"Running /password_change ... erroring field is: {field}")
                     for error in errors:
-                        print(f"Running /password_change ... erroring on this field is: {error}")
+                        print(f'Running /password_change ... erroring on this field: {error}')
                 flash('Error: Invalid input. Please see the red text below for assistance.')
                 return render_template('password_change.html', form=form)
             
@@ -801,7 +801,7 @@ Team {project_name}'''
         
         # Step 3: If token is valid, set user.id to user['user_id'] property from token
         user = user
-        print(f'Running /pw_reset_new ... user is: { user }.')
+        print(f'Running /password_reset_request_new ... user is: { user }.')
 
         form = PasswordResetRequestNewForm()
         
@@ -1027,7 +1027,13 @@ Team {project_name}'''
                 try:
                     company_profile = company_data(symbol, fmp_key)
                     print(f'running /quote... successfully pulled company_profile. Flashing message and directing user to quoted.html')
-                    return render_template("quoted.html", company_profile=company_profile)
+                    if company_profile:
+                        return render_template("quoted.html", company_profile=company_profile)
+                    else:
+                        print(f'running /quote... user submitted with invalid symbol: { symbol }. Flashing error and returning user to /quote.')
+                        flash(f'Error: Invalid stock symbol')
+                        return render_template('quote.html', form=form)
+
                 except TypeError as e:
                     print(f'running /quote... user submitted with invalid symbol: { symbol }. Flashing error and returning user to /quote.')
                     flash(f'Error {e}: Invalid stock symbol')
@@ -1072,7 +1078,7 @@ Team {project_name}'''
 
             # Step 2.1: Handle submission via post + user input clears form validation
             if form.validate_on_submit():
-                print(f'running /password_change ... User submitted via post and user input passed form validation')
+                print(f'running /register ... User submitted via post and user input passed form validation')
                 
                 # Step 2.1.1: Pull in email and password from form and pull user item from DB.
                 name_first = form.name_first.data
