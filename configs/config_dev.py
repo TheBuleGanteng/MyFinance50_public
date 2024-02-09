@@ -53,8 +53,8 @@ class DevelopmentConfig:
 
     # Logging configurations
     LOG_TO_CONSOLE = True
-    LOG_TO_FILE = True
-    LOG_FILE_PATH = 'app.log'
+    LOG_TO_FILE = False
+    LOG_FILE_PATH = os.path.join(BASEDIR, 'logs', 'app.log')
 
     # Email server configuration
     MAIL_SERVER = os.environ.get('MAIL_SERVER')

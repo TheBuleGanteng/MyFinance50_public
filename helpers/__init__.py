@@ -1,2 +1,3 @@
+from .logging import setup_logging
 from .myFinance50_helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, mimetypes, Migrate, number_format, or_, os, percentage, process_purchase, process_sale, project_name, re, RotatingFileHandler, send_email, Session, sys, time, update_listings, unquote, usd, verify_unique_token
 from .portfolio import Portfolio, process_user_transactions

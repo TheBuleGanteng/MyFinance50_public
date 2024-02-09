@@ -1,0 +1,7 @@
+2024-02-09 15:00:12,228 - INFO - running setup... SQLAlchemy Engine URL is sqlite:////home/thebuleganteng/MyFinance50_public/finance.sqlite
+2024-02-09 15:00:12,230 - INFO - running setup... db.create_all has run
+2024-02-09 15:00:19,061 - INFO - running /profile ...  starting /profile  
+2024-02-09 15:00:19,062 - INFO - running /profile ... database URL is: /home/thebuleganteng/MyFinance50_public/finance.sqlite
+2024-02-09 15:00:19,062 - INFO - running /profile ... session.get(user) is: 1
+2024-02-09 15:00:19,062 - INFO - running /profile ... CSRF token is: 9917bed9827fbbad76bf6b1a1dfe560dd476a94b
+2024-02-09 15:00:19,074 - INFO - Running /profile ... user arrived via GET

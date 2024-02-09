@@ -287,6 +287,10 @@ def purge_unconfirmed_accounts():
     print(f'running purge_unconfirmed_accounts ... completed: { datetime.now() }')
 
 
+# Global variable for email address from which automated emails are sent and received
+send_email_address= os.getenv('SEND_EMAIL_ADDRESS')
+receive_email_address= os.getenv('RECEIVE_EMAIL_ADDRESS')
+
 # Send emails
 def send_email(body, recipient):    
     print(f'running send_email ... body is: {body}')
@@ -300,7 +304,7 @@ def send_email(body, recipient):
     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 
     # If you're using domain-wide delegation, specify the user to impersonate
-    credentials = credentials.with_subject('donotreply@mattmcdonnell.net')
+    credentials = credentials.with_subject(send_email_address)
 
     # Build the Gmail service
     service = build('gmail', 'v1', credentials=credentials)
@@ -309,7 +313,7 @@ def send_email(body, recipient):
     email_msg = body
     mime_message = MIMEMultipart()
     mime_message['to'] = f'{recipient}'
-    mime_message['from'] = 'donotreply@mattmcdonnell.net'
+    mime_message['from'] = send_email_address
     mime_message.attach(MIMEText(email_msg, 'plain'))
     raw_string = base64.urlsafe_b64encode(mime_message.as_bytes()).decode()
 

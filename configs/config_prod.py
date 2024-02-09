@@ -54,7 +54,7 @@ class ProdConfig:
     # Logging configurations
     LOG_TO_CONSOLE = False
     LOG_TO_FILE = True
-    LOG_FILE_PATH = os.environ.get('LOG_FILE_PATH', 'app.log')
+    LOG_FILE_PATH = os.path.join(BASEDIR, 'logs', 'app.log')
 
     # Email server configuration for development
     MAIL_SERVER = "smtp.gmail.com"
