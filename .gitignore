@@ -4,3 +4,4 @@
 # Ignore gitignored folder
 gitignored/
 logs/
+MyFinance50-env/
