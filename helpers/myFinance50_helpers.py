@@ -38,7 +38,7 @@ from flask import redirect, render_template, session
 from functools import wraps
 from werkzeug.security import check_password_hash, generate_password_hash
 
-
+# test change
 # Count API pings per day (to use, simply call increment_ping(). You can then print last_pint[pings])
 last_ping = { # Global variable to store the counter
     'pings': 0,
