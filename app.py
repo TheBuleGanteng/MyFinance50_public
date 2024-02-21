@@ -1132,7 +1132,7 @@ Team {project_name}'''
                     token_age_max_minutes = int(int(os.getenv('MAX_TOKEN_AGE_SECONDS'))/60)
                     username = user.username
                     recipient = user.email
-                    subject = 'Confirm you registration with MyFinance50'
+                    subject = 'Confirm your registration with MyFinance50'
                     url = url_for('register_confirmation', token=token, _external=True)
                     body = f'''Dear { user.username }: to confirm your registration with MyFinance50, please visit the following link within the next { token_age_max_minutes } minutes:
                     
