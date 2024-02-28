@@ -1,15 +1,15 @@
 import os
 
-class ProdConfig:
+class ProductionConfig:
     
     # Get the base directory of your app--
     BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
     # Development-specific configurations--
-    DEBUG = True
+    #FLASK_DEBUG=0
 
     # Database configuration
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'finance.sqlite')
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASEDIR, 'finance.sqlite')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # External folder config to the filters and validators    
@@ -21,6 +21,7 @@ class ProdConfig:
 
     # Get the port number from the PORT environment variable (default is 10000)
     PORT = int(os.getenv('PORT', 5000))
+    print(f'running config_prod ... PORT is: { PORT }')
 
     # Pull in secret key from .env
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY')

@@ -14,10 +14,19 @@
 
 runtime: python
 env: flex
-entrypoint: gunicorn -b :$PORT app:app
+entrypoint: gunicorn -b :$PORT 'app:create_app()'
 
 runtime_config:
   operating_system: ubuntu22
+
+readiness_check:
+  path: "/readiness_check"
+  app_start_timeout_sec: 600 
+  check_interval_sec: 5
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+   
 
 # This sample incurs costs to run on the App Engine flexible environment.
 # The settings below are to reduce costs during testing and are not appropriate

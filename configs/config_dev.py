@@ -6,7 +6,7 @@ class DevelopmentConfig:
     BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
     # Development-specific configurations--
-    DEBUG = True
+    FLASK_DEBUG=1
 
     # Database configuration
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASEDIR, 'finance.sqlite')

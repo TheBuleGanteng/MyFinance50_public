@@ -5,14 +5,14 @@ from forms.forms import BuyForm, FilterTransactionHistory, LoginForm, PasswordCh
 from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
 
 
-def create_app(config_name=None):    
+def create_app():    
     app = Flask(__name__)
 
     # Set app mode according to setting in .env
-    if config_name == 'testing':    
+    if os.getenv('FLASK_ENV') == 'testing':    
         from configs.config_testing import TestingConfig
         app.config.from_object(TestingConfig)
-    elif config_name == 'production':
+    elif os.getenv('FLASK_ENV') == 'production':
         from configs.config_prod import ProductionConfig
         app.config.from_object(ProductionConfig)
     else:
@@ -54,6 +54,19 @@ def create_app(config_name=None):
         db.create_all()
         app.logger.info('running setup... db.create_all has run')
         
+
+# ------------------------------------------------------------------------
+
+
+    @app.route('/readiness_check')
+    def readiness_check():
+    # Perform any necessary checks here, such as database connectivity, 
+    # availability of external services, etc.
+    # For simplicity, this example assumes the app is always ready.
+    
+        return 'Ready', 200  # Returns a 200 OK response with text "Ready"
+
+
 # ------------------------------------------------------------------------    
 
     @app.route("/")

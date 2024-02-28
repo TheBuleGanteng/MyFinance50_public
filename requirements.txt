@@ -43,6 +43,7 @@ google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.0
 googleapis-common-protos==1.62.0
 greenlet==3.0.3
+gunicorn==21.2.0
 helper==2.5.0
 helpers==0.2.0
 httplib2==0.22.0
@@ -61,10 +62,9 @@ MarkupSafe==2.1.5
 msgpack==1.0.7
 multidict==6.0.5
 nbformat==5.9.2
-nodejs==0.1.1
 numpy==1.26.4
 oauthlib==3.2.2
-optional-django==0.3.0
+optional-django==0.1.0
 packaging==23.2
 pandas==2.2.0
 password-lib==0.0.3
@@ -96,6 +96,7 @@ six==1.16.0
 SQLAlchemy==2.0.27
 sqlparse==0.4.4
 sseclient-py==1.8.0
+style==1.1.0
 template-render==0.1.0
 termcolor==2.4.0
 tomli==2.0.1
@@ -103,6 +104,7 @@ traitlets==5.14.1
 typing_extensions==4.9.0
 tzdata==2024.1
 unzip==1.0.0
+update==0.0.1
 uritemplate==4.1.1
 urllib3==2.2.0
 uuid==1.30

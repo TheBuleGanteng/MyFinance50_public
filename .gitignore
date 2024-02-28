@@ -6,4 +6,4 @@ gitignored/
 logs/
 MyFinance50-env/
 node_modules
-
+flask_session/
