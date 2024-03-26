@@ -7,3 +7,5 @@ logs/
 MyFinance50-env/
 node_modules
 flask_session/
+cert.key
+cert.crt
