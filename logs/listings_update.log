@@ -82,3 +82,69 @@ Traceback (most recent call last):
   File "/home/thebuleganteng/MyFinance50_public/app.py", line 5, in <module>
     from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
 ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 5, in <module>
+    from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
+ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 5, in <module>
+    from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
+ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 5, in <module>
+    from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
+ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 5, in <module>
+    from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
+ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 5, in <module>
+    from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
+ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 5, in <module>
+    from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
+ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 5, in <module>
+    from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
+ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 5, in <module>
+    from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
+ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 5, in <module>
+    from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
+ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 5, in <module>
+    from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
+ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)
+Traceback (most recent call last):
+  File "/home/thebuleganteng/MyFinance50_public/scripts/listings_update.py", line 8, in <module>
+    from app import create_app
+  File "/home/thebuleganteng/MyFinance50_public/app.py", line 5, in <module>
+    from helpers import apology, Babel, base64, build, check_password_hash, company_data, datetime, date_time, EmailMessage, fmp_key, format_decimal, func, generate_nonce, generate_password_hash, generate_unique_token, logging, login_required, Migrate, number_format, or_, os, percentage, Portfolio, process_purchase, process_sale, project_name, process_user_transactions, re, RotatingFileHandler, send_email, Session, setup_logging, sys, time, unquote, update_listings, usd, verify_unique_token
+ImportError: cannot import name 'apology' from 'helpers' (/home/thebuleganteng/MyFinance50_public/MyFinance50-env/lib/python3.10/site-packages/helpers/__init__.py)
