@@ -1,21 +1,21 @@
-# MyFinance50 - A CS50 Finance-inspired mock brokerage web app
+# MyFinance50 - A CS50 Finance-inspired mock broker web app
 ### [Video Demo](https://youtu.be/93LwPjb0vRM)
 
 ### Description:
-- MyFinance50 is a web application that simulates a brokerage account, with real-time market data provided via the [Financial Modelling Prep (FMP) API](https://site.financialmodelingprep.com/developer/docs).
+- MyFinance50 is a web application that simulates a broker account, with real-time market data provided via the [Financial Modelling Prep (FMP) API](https://site.financialmodelingprep.com/developer/docs).
 - MyFinance50 is inspired by CS50's Finance, with use of a new [API](https://site.financialmodelingprep.com/developer/docs), significant additional functionality, and greater security.
 - This project was completed as the final project for [Harvard's CS50p 2022](https://cs50.harvard.edu/python/2022/)
 - Assignment was submitted on: 09-Feb-2024
 
 
 #### Motivation for project:
-This project is a tribute to [Harvard University's CS50x](https://cs50.harvard.edu/) week 9 assignment: Finance. For that assignment, students are tasked with building a basic mock brokerage account with Python/Flask. 
+This project is a tribute to [Harvard University's CS50x](https://cs50.harvard.edu/) week 9 assignment: Finance. For that assignment, students are tasked with building a basic mock broker account with Python/Flask. 
 
 This project starts with that task and extends it significantly, upgrading functionality, modularity, UI/UX security, and the depth of financial analysis made available to the user.
 
 
 #### Key elements:
-1. This project features key elements of a brokerage account, including: 
+1. This project features key elements of a broker account, including: 
     - User sign-up, including registration confirmation link sent via email
     
 1. User registration
